@@ -6,14 +6,15 @@ type ButtonProps = {
   children: React.ReactNode;
   href?: string;
   variant?: "primary" | "secondary";
-  onClick?: () => void;
+
+ 
 };
 
 export default function Button({
   children,
   href,
   variant = "primary",
-  onClick,
+ 
 }: ButtonProps) {
   const baseClasses =
     "inline-flex items-center justify-center rounded-xl px-6 py-3 font-semibold transition-all duration-300";
@@ -46,9 +47,7 @@ export default function Button({
           scale:.97
       }}
     >
-      onClick={onClick} className={className} 
-      {children}
-  
+     
 
     </motion.button>
   );

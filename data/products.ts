@@ -3,7 +3,7 @@ import { Product } from "@/types/Product";
 
 export const products: Product[] = [
   {
-    id:1,
+    id: 1,
 
     title:"Smart Scalper Pro",
 

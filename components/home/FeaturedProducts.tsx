@@ -1,11 +1,12 @@
 import ProductCard from "@/components/product/ProductCard";
-import { products } from "@/data/products";
+import { getProducts } from "@/lib/products";
 import Container from "../ui/Container";
 import FilterChip from "../ui/FilterChip";
 import SectionTitle from "../ui/SectionTitle";
 import FadeIn from "../ui/FadeIn";
 
-export default function FeaturedProducts() {
+export default async function FeaturedProducts() {
+  const products = await getProducts() ; 
   return (
     <section className="py-32">
 
@@ -40,16 +41,17 @@ export default function FeaturedProducts() {
 
           {products.map((product, index) => (
 
-        <FadeIn
-            key={product.id}
-            delay={index*0.1}
-        >
+            <FadeIn
+                key={product.id}
+                delay={index*0.1}
+            >
 
-        <ProductCard
-            product={product}
-        />
+            <ProductCard
+                key={product.id}
+                product={product}
+            />
 
-        </FadeIn>
+            </FadeIn>
 
 ))}
 

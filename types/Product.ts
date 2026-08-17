@@ -1,5 +1,5 @@
 export interface Product {
-  id: number;
+  id: string;
 
   title: string;
 
@@ -7,9 +7,12 @@ export interface Product {
 
   description: string;
 
-  image: string;
+  image: string ;
 
-  category: "expert-advisor" | "indicator" | "assistant";
+  category:
+    | "expert-advisor"
+    | "indicator"
+    | "assistant";
 
   premium: boolean;
 
@@ -17,9 +20,31 @@ export interface Product {
 
   rating: number;
 
-  platforms: ("MT4" | "MT5" | "TradingView")[];
+  platforms: string[];
 
   featured: boolean;
+
+  created_at: string;
+
+  long_description: string | null;
+
+  features: string[];
+
+  requirements: string[];
+
+  demo_available: boolean;
+
+  youtube_url: string | null;
 }
- 
+
+
+
+export interface ProductImage {
+  id: string;
+  product_id: string;
+  image_url: string;
+  title: string | null;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
 }
