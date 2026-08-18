@@ -11,23 +11,35 @@ export default function DashboardPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
- useEffect(() => {
+  const [profile, setProfile] = useState<{
+  full_name: string | null;
+  avatar_url: string | null;
+  } | null>(null);
+
+ useEffect(() => {  
   async function getUser() {
     const {
-      data: { session },
+      data: { user },
       error,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    console.log("SESSION:", session);
-    console.log("ERROR:", error);
 
-    if (!session) {
+
+    if (!user) {
       router.replace("/auth/login");
       return;
     }
 
-    setEmail(session.user.email ?? null);
+    setEmail(user.email ?? null);
     setLoading(false);
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("full_name, avatar_url")
+      .eq("id", user.id)
+      .single();
+
+    setProfile(profileData);
+
   }
 
   getUser();
