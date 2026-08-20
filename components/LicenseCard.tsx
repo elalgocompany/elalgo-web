@@ -1,0 +1,246 @@
+"use client";
+
+"use client";
+
+import { useState } from "react";
+import { License } from "@/types/License";
+import { supabase } from "@/lib/supabase";
+type LicenseCardProps = {
+  license: License;
+};
+
+export default function LicenseCard({
+  license,
+}: LicenseCardProps) {
+  const product = license.products[0];
+  const plan = license.product_plans[0];
+
+  const [accountNumber, setAccountNumber] = useState(
+    license.account_number || ""
+    );
+
+const [saving, setSaving] = useState(false);
+const [message, setMessage] = useState("");
+
+  const isLifetime = !license.expires_at;
+
+  const isExpired =
+    !isLifetime &&
+    new Date(license.expires_at!) < new Date();
+
+  const remainingDays = isLifetime
+    ? null
+    : Math.max(
+        0,
+        Math.ceil(
+          (new Date(license.expires_at!).getTime() -
+            new Date().getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+      );
+
+  const formattedExpiration = license.expires_at
+    ? new Date(license.expires_at).toLocaleDateString(
+        "en-US",
+        {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }
+      )
+    : "Never";
+
+
+    async function handleSaveAccount() {
+  const cleanedAccountNumber = accountNumber.trim();
+
+  if (!cleanedAccountNumber) {
+    setMessage("Please enter an account number.");
+    return;
+  }
+
+  setSaving(true);
+  setMessage("");
+
+  const { error } = await supabase
+    .from("licenses")
+    .update({
+      account_number: cleanedAccountNumber,
+      account_updated_at: new Date().toISOString(),
+    })
+    .eq("id", license.id);
+
+  if (error) {
+    console.error("Error updating account:", error);
+    setMessage("Failed to save account number.");
+  } else {
+    setMessage("Account number saved successfully.");
+  }
+
+  setSaving(false);
+    }
+  return (
+    <div  className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+
+      {/* Product Image */}
+
+      {product?.image && (
+        <div className="relative h-48 w-full overflow-hidden">
+          <img
+            src={product.image}
+            alt={product.title}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      )}
+
+      <div  className="p-6">
+
+        {/* Product Name */}
+
+        <div className="flex items-start justify-between gap-4 ">
+
+          <div>
+            <h2 className="text-xl font-bold text-white">
+              {product?.title}
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-400">
+              {product?.category}
+            </p>
+          </div>
+
+          {/* Status Badge */}
+
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold ${
+              isExpired || license.status !== "active"
+                ? "bg-red-500/20 text-red-400"
+                : "bg-green-500/20 text-green-400"
+            }`}
+          >
+            {isExpired ? "EXPIRED" : license.status.toUpperCase()}
+          </span>
+
+        </div>
+
+        {/* License Information */}
+
+        <div className="mt-6 space-y-4">
+
+          <div>
+            <p className="text-xs uppercase tracking-wider text-gray-500">
+              License Plan
+            </p>
+
+            <p className="mt-1 font-semibold text-white">
+              {plan?.name}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wider text-gray-500">
+              Remaining Time
+            </p>
+
+            <p className="text-blue-300 mt-1 text-lg font-bold ">
+              {isLifetime
+                ? "Lifetime"
+                : `${remainingDays} days remaining`}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wider text-gray-500">
+              Expires
+            </p>
+
+            <p className="mt-1 font-semibold text-blue-300">
+              {formattedExpiration}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wider text-gray-500">
+              Platform
+            </p>
+
+            <p className="mt-1 font-semibold text-blue-400">
+              {license.platform?.toUpperCase()}
+            </p>
+          </div>
+
+        </div>
+
+        {/* Account Input */}
+
+        <div className="mt-6">
+
+          <label className="mb-2 block text-sm font-medium text-gray-500">
+            MetaTrader Account Number
+          </label>
+
+          <input
+            type="text"
+            value={accountNumber}
+            onChange={(event) =>
+                setAccountNumber(event.target.value)
+            }
+            placeholder="Enter account number"
+            className="w-full rounded-lg border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-blue-400"
+            />
+
+        </div>
+
+        {/* Save Button */}
+
+        <button
+            onClick={handleSaveAccount}
+            disabled={saving}
+            className="mt-3 w-full rounded-lg bg-blue-500 px-4 py-3 font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+            {saving ? "Saving..." : "Save Account"}
+        </button>
+
+        {message && (
+        <p className="mt-3 text-center text-sm text-gray-300">
+            {message}
+        </p>
+        )}
+
+        {/* License Key */}
+
+        <div className="mt-6 border-t border-white/10 pt-4">
+
+          <p className="text-xs uppercase tracking-wider text-gray-500">
+            License Key
+          </p>
+
+          <p className="mt-1 break-all font-mono text-sm text-gray-300">
+            {license.license_key}
+          </p>
+
+        </div>
+
+        {/* Last Verified */}
+
+        <div className="mt-4">
+
+          <p className="text-xs uppercase tracking-wider text-gray-500">
+            Last Verified
+          </p>
+
+          <p className="mt-1 text-sm text-gray-400">
+            {license.last_verified_at
+              ? new Date(
+                  license.last_verified_at
+                ).toLocaleString()
+              : "Never"}
+          </p>
+
+        </div>
+
+      </div>
+    </div>
+  );
+}

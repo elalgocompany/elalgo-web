@@ -9,6 +9,8 @@ export interface Product {
 
   image: string ;
 
+  
+  
   category:
     | "expert-advisor"
     | "indicator"
