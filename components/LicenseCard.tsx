@@ -22,6 +22,34 @@ export default function LicenseCard({
 const [saving, setSaving] = useState(false);
 const [message, setMessage] = useState("");
 
+
+
+// set cool down for account change 
+const COOLDOWN_HOURS = 24;
+
+const lastAccountVerification = license.account_verified_at
+  ? new Date(license.account_verified_at)
+  : null;
+
+const nextAccountChange = lastAccountVerification
+  ? new Date(
+      lastAccountVerification.getTime() +
+        COOLDOWN_HOURS * 60 * 60 * 1000
+    )
+  : null;
+
+const isAccountChangeLocked =
+  nextAccountChange !== null &&
+  nextAccountChange > new Date();
+
+const remainingCooldownHours =
+  isAccountChangeLocked && nextAccountChange
+    ? Math.ceil(
+        (nextAccountChange.getTime() - new Date().getTime()) /
+          (1000 * 60 * 60)
+      )
+    : 0;
+
   const isLifetime = !license.expires_at;
 
   const isExpired =
@@ -65,8 +93,9 @@ const [message, setMessage] = useState("");
   const { error } = await supabase
     .from("licenses")
     .update({
-      account_number: cleanedAccountNumber,
-      account_updated_at: new Date().toISOString(),
+        account_number: cleanedAccountNumber,
+        account_selected_at: new Date().toISOString(),
+        account_verified_at: null,
     })
     .eq("id", license.id);
 
@@ -186,17 +215,25 @@ const [message, setMessage] = useState("");
             onChange={(event) =>
                 setAccountNumber(event.target.value)
             }
+            disabled={isAccountChangeLocked}
             placeholder="Enter account number"
             className="w-full rounded-lg border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-blue-400"
             />
-
+            {license.account_number &&
+            !license.account_verified_at &&
+            !isAccountChangeLocked && (
+                <p className="mt-3 text-sm text-yellow-400">
+                Waiting for activation. Please run the EA on this
+                MetaTrader account {accountNumber} to activate your license.
+                </p>
+            )}
         </div>
 
         {/* Save Button */}
 
         <button
             onClick={handleSaveAccount}
-            disabled={saving}
+            disabled={saving || isAccountChangeLocked}
             className="mt-3 w-full rounded-lg bg-blue-500 px-4 py-3 font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
             {saving ? "Saving..." : "Save Account"}
@@ -207,7 +244,12 @@ const [message, setMessage] = useState("");
             {message}
         </p>
         )}
-
+        {isAccountChangeLocked && (
+        <p className="mt-3 text-center text-sm text-yellow-400">
+            You can change this account again in approximately{" "}
+            {remainingCooldownHours} hours.
+        </p>
+        )}
         {/* License Key */}
 
         <div className="mt-6 border-t border-white/10 pt-4">

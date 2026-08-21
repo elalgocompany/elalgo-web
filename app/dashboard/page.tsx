@@ -91,7 +91,8 @@ export default function DashboardPage() {
     expires_at,
     activation_limit,
     activation_count,
-    account_updated_at,
+    account_selected_at,
+    account_verified_at,
     last_verified_at,
     created_at,
 
