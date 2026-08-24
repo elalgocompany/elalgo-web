@@ -6,11 +6,13 @@ import { Product } from "@/types/Product";
 import { Star , ArrowRight } from "lucide-react";
 import {motion } from "framer-motion"
 import Link from "next/link";
+import { image } from "framer-motion/client";
+import { products } from "@/data/products";
 
 interface ProductCardProps {
 
   product: Product;
-
+  
 }
 
 export default function ProductCard({
@@ -18,8 +20,13 @@ export default function ProductCard({
 product
 
 }:ProductCardProps){
+  
+  
+  
   return (
     
+    
+
     <motion.div
     whileHover={{
         y:-8,
@@ -36,7 +43,7 @@ product
         {/* Product Image */}
         <div className="mb-6 overflow-hidden rounded-2xl">
           <Image
-            src={product.image}
+            src={product.image || "/images/Elalgoagent.png"}
             alt={product.title}
             width={500}
             height={500}
@@ -82,8 +89,8 @@ product
           <span className="text-3xl font-bold text-blue-400">
             ${product.price}
           </span>
-          
-            <Button href='/products/${product.slug}'>
+
+            <Button href={`/products/${product.slug}`}>
               View Details
             </Button>
         

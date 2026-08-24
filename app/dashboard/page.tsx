@@ -9,6 +9,7 @@ import { Console } from "console";
 import { products } from "@/data/products";
 import LicenseCard from "@/components/LicenseCard";
 
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -83,6 +84,7 @@ export default function DashboardPage() {
     id,
     license_key,
     platform,
+    license_kind, 
     account_number,
     broker,
     server,
@@ -247,6 +249,7 @@ export default function DashboardPage() {
   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
     {licenses.map((license) => (
+      
       <LicenseCard
         key={license.id}
         license={license}

@@ -43,3 +43,19 @@ export async function getProductImages(productId: string) {
 
   return data ?? [];
 }
+
+export async function getProductPlans(
+  productId: string
+) {
+  const { data, error } = await supabase
+    .from("product_plans")
+    .select("*")
+    .eq("product_id", productId)
+    .order("price", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ?? [];
+}

@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 
-import { getProductBySlug, getProductImages } from "@/lib/products";
-
+import { getProductBySlug, getProductImages , getProductPlans } from "@/lib/products";
+import ProductPlans from "@/components/product/ProductPlans";
 import ProductVideo from "@/components/product/ProductVideo";
 import ProductGallery from "@/components/product/ProductGallery";
+import StartTrialButton from "@/components/StartTrialButton";
+
 
 interface ProductPageProps {
   params: Promise<{
@@ -23,7 +25,7 @@ export default async function ProductPage({
   }
 
   const images = await getProductImages(product.id);
-
+  const plans = await getProductPlans(product.id);
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
 
@@ -107,32 +109,25 @@ export default async function ProductPage({
 
             {/* Price */}
 
-            <div className="mt-8">
+            
+            <ProductPlans plans={plans} />
 
-              <span className="text-4xl font-black text-slate-950">
-                ${product.price}
-              </span>
-
-            </div>
-
-            {/* Buttons */}
-
-            <div className="mt-8 flex flex-wrap gap-4">
-
-              <button className="rounded-xl bg-sky-500 px-8 py-4 font-bold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-600">
-                Buy Now
+            {product.demo_available && (
+              <button className="mt-4 rounded-xl border border-slate-300 bg-white px-8 py-4 font-bold text-slate-800 transition hover:bg-slate-100">
+                Free Demo
               </button>
+            )}
+              
 
-              {product.demo_available && (
-                <button className="rounded-xl border border-slate-300 bg-white px-8 py-4 font-bold text-slate-800 transition hover:bg-slate-100">
-                  Free Demo
-                </button>
-              )}
-
-            </div>
-
+          
+                
           </div>
-
+              {product.trial_enabled && (
+                <StartTrialButton
+                  productId={product.id}
+                  trialDays={product.trial_duration_days || 7}
+                />
+              )}
         </section>
 
         {/* SCREENSHOT GALLERY */}

@@ -10,11 +10,14 @@ export type License = {
 
   license_key: string;
 
+  
+
+  license_kind: string | null; 
+
   platform: "mt4" | "mt5" | null;
 
   account_number: string | null;
 
-  broker: string | null;
 
   server: string | null;
 
@@ -24,11 +27,19 @@ export type License = {
 
   expires_at: string | null;
 
+  
+
+  trial_started_at: string | null;
+
+  trial_duration_days : 7 ; 
+
   activation_limit: number;
 
   activation_count: number;
 
-  account_updated_at: string | null;
+  account_selected_at: string | null;
+
+  account_verified_at: string | null;
 
   last_verified_at: string | null;
 

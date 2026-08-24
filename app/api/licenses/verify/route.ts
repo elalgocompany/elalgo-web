@@ -47,6 +47,9 @@ export async function POST(request: NextRequest) {
         server,
         status,
         expires_at,
+        license_kind,
+        trial_started_at,
+        trial_duration_days,
         account_selected_at,
         account_verified_at,
         products (
@@ -139,17 +142,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const { error: updateError } = await supabaseAdmin
-      .from("licenses")
-      .update({
-        account_verified_at: now,
-        last_verified_at: now,
-        broker: broker || null,
-        server: server || null,
-      })
-      .eq("id", license.id);
+const updateData: Record<string, string | null> = {
+  account_verified_at: now.toISOString(),
+  last_verified_at: now.toISOString(),
+  broker: broker || null,
+  server: server || null,
+};
+
+// If this is a trial and it has never been activated,
+// start the trial now.
+if (
+  license.license_kind === "trial" &&
+  !license.trial_started_at
+) {
+  const trialDays =
+    license.trial_duration_days || 7;
+
+  const expiresAt = new Date(
+    now.getTime() +
+      trialDays * 24 * 60 * 60 * 1000
+  );
+
+  updateData.trial_started_at =
+    now.toISOString();
+
+  updateData.expires_at =
+    expiresAt.toISOString();
+}
+
+const { error: updateError } = await supabaseAdmin
+  .from("licenses")
+  .update(updateData)
+  .eq("id", license.id);
 
     if (updateError) {
       console.error(

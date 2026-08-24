@@ -1,10 +1,16 @@
-"use client";
+
 
 "use client";
 
 import { useState } from "react";
 import { License } from "@/types/License";
 import { supabase } from "@/lib/supabase";
+import { products } from "@/data/products";
+import { data } from "framer-motion/client";
+
+
+
+
 type LicenseCardProps = {
   license: License;
 };
@@ -12,12 +18,12 @@ type LicenseCardProps = {
 export default function LicenseCard({
   license,
 }: LicenseCardProps) {
-  const product = license.products[0];
-  const plan = license.product_plans[0];
+const product = license.products[0];
+const plan = license.product_plans[0];
 
-  const [accountNumber, setAccountNumber] = useState(
-    license.account_number || ""
-    );
+const [accountNumber, setAccountNumber] = useState(
+  license.account_number || ""
+);
 
 const [saving, setSaving] = useState(false);
 const [message, setMessage] = useState("");
@@ -50,36 +56,48 @@ const remainingCooldownHours =
       )
     : 0;
 
-  const isLifetime = !license.expires_at;
+const isTrial = license.license_kind === "trial";
 
-  const isExpired =
-    !isLifetime &&
-    new Date(license.expires_at!) < new Date();
+  console.log("Trial is  " , license.license_kind) ; 
+const isLifetime =
+  license.license_kind === "lifetime";
 
-  const remainingDays = isLifetime
-    ? null
-    : Math.max(
+const isTrialWaitingForActivation =
+  isTrial && !license.trial_started_at;
+
+const isExpired =
+  !!license.expires_at &&
+  new Date(license.expires_at) < new Date();
+
+const remainingDays =
+  license.expires_at
+    ? Math.max(
         0,
         Math.ceil(
-          (new Date(license.expires_at!).getTime() -
+          (new Date(license.expires_at).getTime() -
             new Date().getTime()) /
             (1000 * 60 * 60 * 24)
         )
-      );
-
-  const formattedExpiration = license.expires_at
-    ? new Date(license.expires_at).toLocaleDateString(
-        "en-US",
-        {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }
       )
-    : "Never";
+    : null;
+
+const formattedExpiration = license.expires_at
+  ? new Date(license.expires_at).toLocaleDateString(
+      "en-US",
+      {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }
+    )
+  : isTrial
+  ? "Starts after activation"
+  : isLifetime
+  ? "Never"
+  : "Not set";
 
 
-    async function handleSaveAccount() {
+  async function handleSaveAccount() {
   const cleanedAccountNumber = accountNumber.trim();
 
   if (!cleanedAccountNumber) {
@@ -96,20 +114,25 @@ const remainingCooldownHours =
         account_number: cleanedAccountNumber,
         account_selected_at: new Date().toISOString(),
         account_verified_at: null,
+       
     })
     .eq("id", license.id);
 
-  if (error) {
-    console.error("Error updating account:", error);
-    setMessage("Failed to save account number.");
-  } else {
-    setMessage("Account number saved successfully.");
+    if (error) {
+      console.error("Error updating account:", error);
+      setMessage("Failed to save account number.");
+    } else {
+      setMessage("Account number saved successfully.");
+    }
+
+    setSaving(false);
   }
 
-  setSaving(false);
-    }
+
+  console.log("data" , license); 
+  
   return (
-    <div  className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+    <div  className="overflow-hidden rounded-2xl border border-black/10 bg-black/5 ">
 
       {/* Product Image */}
 
@@ -122,7 +145,7 @@ const remainingCooldownHours =
           />
         </div>
       )}
-
+  
       <div  className="p-6">
 
         {/* Product Name */}
@@ -148,10 +171,38 @@ const remainingCooldownHours =
                 : "bg-green-500/20 text-green-400"
             }`}
           >
-            {isExpired ? "EXPIRED" : license.status.toUpperCase()}
+            {isExpired
+              ? "EXPIRED"
+              : isTrial
+              ? "FREE TRIAL"
+              : license.status.toUpperCase()}
           </span>
 
         </div>
+
+        {isTrial && (
+          <div className="mt-6 rounded-xl border border-blue-400/30 bg-blue-500/10 p-4">
+            <p className="font-bold text-blue-300">
+              FREE TRIAL
+            </p>
+
+            {isTrialWaitingForActivation ? (
+              <p className="mt-2 text-sm text-yellow-300">
+                Your {license.trial_duration_days || 7}-day trial will begin
+                when you activate this product on MetaTrader.
+              </p>
+            ) : isExpired ? (
+              <p className="mt-2 text-sm text-red-300">
+                Your free trial has ended.
+              </p>
+            ) : (
+              <p className="mt-2 text-sm text-blue-200">
+                You have {remainingDays} day
+                {remainingDays === 1 ? "" : "s"} remaining.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* License Information */}
 
@@ -163,7 +214,7 @@ const remainingCooldownHours =
             </p>
 
             <p className="mt-1 font-semibold text-white">
-              {plan?.name}
+              {isTrial ? "7-Day Free Trial" : plan?.name}
             </p>
           </div>
 
@@ -172,14 +223,17 @@ const remainingCooldownHours =
               Remaining Time
             </p>
 
-            <p className="text-blue-300 mt-1 text-lg font-bold ">
-              {isLifetime
+            <p className="mt-1 text-lg font-bold text-blue-300">
+              {isTrialWaitingForActivation
+                ? "Starts after activation"
+                : isLifetime
                 ? "Lifetime"
+                : isExpired
+                ? "Trial expired"
                 : `${remainingDays} days remaining`}
             </p>
-          </div>
-
-          <div>
+          
+          
             <p className="text-xs uppercase tracking-wider text-gray-500">
               Expires
             </p>
@@ -213,7 +267,7 @@ const remainingCooldownHours =
             type="text"
             value={accountNumber}
             onChange={(event) =>
-                setAccountNumber(event.target.value)
+              setAccountNumber(event.target.value)
             }
             disabled={isAccountChangeLocked}
             placeholder="Enter account number"
@@ -282,7 +336,7 @@ const remainingCooldownHours =
 
         </div>
 
-      </div>
     </div>
+  </div>
   );
 }

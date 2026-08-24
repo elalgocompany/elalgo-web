@@ -3,11 +3,11 @@ export interface Product {
 
   title: string;
 
-  slug: string;
+    slug: string;
 
   description: string;
 
-  image: string | null ;
+  image: string ;
 
   
   
@@ -27,6 +27,10 @@ export interface Product {
   featured: boolean;
 
   created_at: string;
+
+  trial_enabled : boolean ; 
+  
+  trial_duration_days: number | null;
 
   long_description: string | null;
 
