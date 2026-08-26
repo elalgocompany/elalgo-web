@@ -7,7 +7,7 @@ import { Star , ArrowRight } from "lucide-react";
 import {motion } from "framer-motion"
 import Link from "next/link";
 import { image } from "framer-motion/client";
-import { products } from "@/data/products";
+
 
 interface ProductCardProps {
 

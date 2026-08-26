@@ -5,7 +5,6 @@
 import { useState } from "react";
 import { License } from "@/types/License";
 import { supabase } from "@/lib/supabase";
-import { products } from "@/data/products";
 import { data } from "framer-motion/client";
 
 
@@ -23,18 +22,26 @@ type LicenseCardProps = {
 export default function LicenseCard({
   license,
 }: LicenseCardProps) {
-const product = license.products;
-const plan = license.product_plans;
+const product = Array.isArray(license.products)
+  ? license.products[0]
+  : license.products;
 
-const productFiles = product?.product_files ?? [];
+
+const plan = Array.isArray(license.product_plans)
+  ? license.product_plans[0]
+  : license.product_plans;
+
+const productFiles =
+  product?.product_files ?? [];
+
+
+
 
 const [accountNumber, setAccountNumber] = useState(
   license.account_number || ""
 );
 
-console.log("PRODUCT:", product);
-console.log("PLAN:", plan);
-console.log("PRODUCT FILES:", productFiles);
+
 
 
 const [saving, setSaving] = useState(false);

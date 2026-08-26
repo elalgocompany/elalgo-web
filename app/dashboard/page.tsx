@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import type { Purchase } from "@/types/Purchase";
 import { License } from "@/types/License";
 import { Console } from "console";
-import { products } from "@/data/products";
+
 import LicenseCard from "@/components/LicenseCard";
 
 
@@ -85,6 +85,8 @@ export default function DashboardPage() {
     license_key,
     platform,
     license_kind, 
+    trial_started_at,
+    trial_duration_days,
     account_number,
     broker,
     server,
@@ -222,25 +224,31 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {purchases.map((purchase) => 
-             (
+            {purchases.map((purchase) => {
+              const product = purchase.products[0];
+
+              if (!product) {
+                return null;
+              }
+
+              return (
               <div
                 key={purchase.id}
                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
               >
                 <img
-                  src={purchase.products.image}
-                  alt={purchase.products.title}
+                  src={product.image}
+                  alt={product.title}
                   className="h-48 w-full object-cover"
                 />
 
                 <div className="p-5">
                   <h3 className="text-xl font-black">
-                    {purchase.products.title}
+                    {product.title}
                   </h3>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    {purchase.products.description}
+                    {product.description}
                   </p>
 
                   <p className="mt-4 text-sm font-semibold text-green-600">
@@ -248,7 +256,9 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </div>
-            ))}
+            );
+            })
+          }
           </div>
         )}
       </section>

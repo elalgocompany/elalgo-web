@@ -31,7 +31,7 @@ export type License = {
 
   trial_started_at: string | null;
 
-  trial_duration_days : 7 ; 
+  trial_duration_days: number | null;
 
   activation_limit: number;
 

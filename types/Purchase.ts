@@ -10,5 +10,5 @@ export type Purchase = {
     description: string;
     image: string;
     category: string;
-  };
+  }[];
 };
