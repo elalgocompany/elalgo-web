@@ -99,12 +99,19 @@ export default function DashboardPage() {
     created_at,
 
     products (
-      id,
-      title,
-      description,
-      image,
-      category
-    ),
+  id,
+  title,
+  description,
+  image,
+  category,
+
+  product_files (
+    id,
+    platform,
+    version,
+    file_path
+  )
+),
 
     product_plans (
       id,
@@ -116,9 +123,15 @@ export default function DashboardPage() {
   .eq("user_id", user.id)
   .order("created_at", { ascending: false });
 
+    
+
     if (licensesError) {
       console.error("Error loading licenses:", licensesError);
     } else {
+      console.log(
+        "RAW LICENSE DATA:",
+        JSON.stringify(licensesData, null, 2)
+      );
       setLicenses(licensesData ?? []);
     }
 

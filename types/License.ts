@@ -51,6 +51,12 @@ export type License = {
     description: string;
     image: string;
     category: string;
+    product_files: {
+      id: string;
+      platform: "mt4" | "mt5";
+      version: string | null;
+    }[];
+
   }[];
 
   product_plans: {

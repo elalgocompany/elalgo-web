@@ -23,12 +23,19 @@ type LicenseCardProps = {
 export default function LicenseCard({
   license,
 }: LicenseCardProps) {
-const product = license.products[0];
-const plan = license.product_plans[0];
+const product = license.products;
+const plan = license.product_plans;
+
+const productFiles = product?.product_files ?? [];
 
 const [accountNumber, setAccountNumber] = useState(
   license.account_number || ""
 );
+
+console.log("PRODUCT:", product);
+console.log("PLAN:", plan);
+console.log("PRODUCT FILES:", productFiles);
+
 
 const [saving, setSaving] = useState(false);
 const [message, setMessage] = useState("");
@@ -63,7 +70,7 @@ const remainingCooldownHours =
 
 const isTrial = license.license_kind === "trial";
 
-  console.log("Trial is  " , license.license_kind) ; 
+  
 const isLifetime =
   license.license_kind === "lifetime";
 
@@ -102,6 +109,16 @@ const formattedExpiration = license.expires_at
   : "Not set";
 
 
+
+
+
+
+
+
+
+  const [downloading, setDownloading] =
+  useState(false);
+
   async function handleSaveAccount() {
   const cleanedAccountNumber = accountNumber.trim();
 
@@ -134,10 +151,59 @@ const formattedExpiration = license.expires_at
   }
 
 
-  console.log("data" , license); 
+ 
 
   
-  
+async function handleDownload(platform: string) {
+  setDownloading(true);
+  setMessage("");
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setMessage("Please sign in again.");
+      return;
+    }
+
+    const response = await fetch("/api/download", {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        user_id: user.id,
+        license_id: license.id,
+        platform,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage(
+        data.message ||
+          "Could not download product."
+      );
+
+      return;
+    }
+
+    window.location.href = data.download_url;
+  } catch (error) {
+    console.error("Download error:", error);
+
+    setMessage(
+      "Something went wrong while downloading."
+    );
+  } finally {
+    setDownloading(false);
+  }
+}
   return (
     <div  className="overflow-hidden rounded-2xl border border-black/10 bg-black/5 ">
 
@@ -250,15 +316,7 @@ const formattedExpiration = license.expires_at
             </p>
           </div>
 
-          <div>
-            <p className="text-xs uppercase tracking-wider text-gray-500">
-              Platform
-            </p>
-
-            <p className="mt-1 font-semibold text-blue-400">
-              {license.platform?.toUpperCase()}
-            </p>
-          </div>
+          
 
         </div>
 
@@ -343,7 +401,27 @@ const formattedExpiration = license.expires_at
 
         </div>
 
-    </div>
-  </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+
+              {productFiles.map((file) => (
+                <button
+                  key={file.id}
+                  onClick={() =>
+                    handleDownload(file.platform)
+                  }
+                  disabled={downloading || isExpired}
+                  className="flex-1 rounded-lg bg-emerald-500 px-4 py-3 font-bold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {downloading
+                    ? "Preparing..."
+                    : `Download ${file.platform.toUpperCase()}`}
+                </button>
+              ))}
+
+            </div>
+
+
+        </div>
+        </div>
   );
 }

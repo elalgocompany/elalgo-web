@@ -9,7 +9,7 @@ export interface Product {
 
   image: string | null ;
 
-  
+  access_type: "free" | "paid";
   
   category:
     | "expert-advisor"

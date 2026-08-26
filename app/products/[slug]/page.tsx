@@ -5,7 +5,8 @@ import ProductPlans from "@/components/product/ProductPlans";
 import ProductVideo from "@/components/product/ProductVideo";
 import ProductGallery from "@/components/product/ProductGallery";
 import StartTrialButton from "@/components/StartTrialButton";
-
+import { getProductFiles } from "@/lib/products";
+import FreeProductDownloads from "@/components/product/FreeProductDownloads";
 
 interface ProductPageProps {
   params: Promise<{
@@ -26,6 +27,12 @@ export default async function ProductPage({
 
   const images = await getProductImages(product.id);
   const plans = await getProductPlans(product.id);
+  const productFiles =await getProductFiles(product.id);
+
+  console.log(
+  "PRODUCT PAGE FILES:",
+  productFiles
+);
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
 
@@ -110,10 +117,17 @@ export default async function ProductPage({
             {/* Price */}
 
             
-            <ProductPlans
-              plans={plans}
-              productId={product.id}
-            />
+            {product.access_type === "free" ? (
+              <FreeProductDownloads
+                productId={product.id}
+                files={productFiles}
+              />
+            ) : (
+              <ProductPlans
+                plans={plans}
+                productId={product.id}
+              />
+            )}
 
             {product.demo_available && (
               <button className="mt-4 rounded-xl border border-slate-300 bg-white px-8 py-4 font-bold text-slate-800 transition hover:bg-slate-100">
@@ -125,10 +139,14 @@ export default async function ProductPage({
           
                 
           </div>
-              {product.trial_enabled && (
+              {product.access_type === "paid" &&
+              product.trial_enabled && (
                 <StartTrialButton
                   productId={product.id}
-                  trialDays={product.trial_duration_days || 7}
+                  trialDays={
+                    product.trial_duration_days ||
+                    7
+                  }
                 />
               )}
         </section>
