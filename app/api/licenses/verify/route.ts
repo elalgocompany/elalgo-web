@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date();
-
+    let responseExpiresAt = license.expires_at;
 const updateData: Record<string, string | null> = {
   account_verified_at: now.toISOString(),
   last_verified_at: now.toISOString(),
@@ -199,7 +199,7 @@ const { error: updateError } = await supabaseAdmin
       license: {
         id: license.id,
         product_id: license.product_id,
-        expires_at: license.expires_at,
+        expires_at: responseExpiresAt,
         status: license.status,
       },
     });

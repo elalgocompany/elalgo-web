@@ -1,21 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { ProductPlan } from "@/types/productPlan";
+import { useRouter } from "next/navigation";
+import { ProductPlan } from "@/types/ProductPlan";
+import { supabase } from "@/lib/supabase";
 
 type ProductPlansProps = {
   plans: ProductPlan[];
+  productId: string;
 };
 
 export default function ProductPlans({
   plans,
+    productId,
 }: ProductPlansProps) {
   const [selectedPlanId, setSelectedPlanId] =
     useState<string | null>(
       plans.length > 0 ? plans[0].id : null
     );
+    const router = useRouter();
 
-  const selectedPlan = plans.find(
+    const [loading, setLoading] = useState(false);
+
+    const [error, setError] = useState("");
+    const selectedPlan = plans.find(
     (plan) => plan.id === selectedPlanId
   );
 
@@ -27,6 +35,40 @@ export default function ProductPlans({
     );
   }
 
+
+  async function handleBuy() {
+  if (!selectedPlan) return;
+
+  setLoading(true);
+  setError("");
+
+  try {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      router.push(
+        `/auth/login?redirect=/checkout?product=${productId}&plan=${selectedPlan.id}`
+      );
+
+      return;
+    }
+
+    router.push(
+      `/checkout?product=${productId}&plan=${selectedPlan.id}`
+    );
+  } catch (error) {
+    console.error("Buy error:", error);
+
+    setError(
+      "Something went wrong. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+    }
   return (
     <div className="mt-8">
 
@@ -78,11 +120,20 @@ export default function ProductPlans({
 
       <button
         type="button"
-        disabled={!selectedPlan}
+        onClick={handleBuy}
+        disabled={!selectedPlan || loading}
         className="mt-6 w-full rounded-xl bg-sky-500 px-8 py-4 font-bold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Buy {selectedPlan?.name || "Now"}
-      </button>
+        >
+        {loading
+            ? "Loading..."
+            : `Buy ${selectedPlan?.name || "Now"}`}
+        </button>
+
+        {error && (
+        <p className="mt-3 text-sm font-medium text-red-500">
+            {error}
+        </p>
+        )}
 
     </div>
   );

@@ -110,7 +110,10 @@ export default async function ProductPage({
             {/* Price */}
 
             
-            <ProductPlans plans={plans} />
+            <ProductPlans
+              plans={plans}
+              productId={product.id}
+            />
 
             {product.demo_available && (
               <button className="mt-4 rounded-xl border border-slate-300 bg-white px-8 py-4 font-bold text-slate-800 transition hover:bg-slate-100">
