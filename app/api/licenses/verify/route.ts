@@ -169,6 +169,20 @@ if (
     expiresAt.toISOString();
 }
 
+
+  let remainingSeconds: number | null = null;
+
+      if (responseExpiresAt) {
+        remainingSeconds = Math.max(
+          0,
+          Math.floor(
+            (new Date(responseExpiresAt).getTime() -
+              Date.now()) /
+              1000
+          )
+        );
+      }
+
 const { error: updateError } = await supabaseAdmin
   .from("licenses")
   .update(updateData)
@@ -179,7 +193,7 @@ const { error: updateError } = await supabaseAdmin
         "License verification update error:",
         updateError
       );
-
+      
       return NextResponse.json(
         {
           valid: false,
@@ -196,8 +210,12 @@ const { error: updateError } = await supabaseAdmin
       license: {
         id: license.id,
         product_id: license.product_id,
-        expires_at: responseExpiresAt,
         status: license.status,
+        license_kind: license.license_kind,
+
+        expires_at: responseExpiresAt,
+
+        remaining_seconds:remainingSeconds ,
       },
     });
   } catch (error) {
