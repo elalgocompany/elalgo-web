@@ -43,8 +43,6 @@ export async function POST(request: NextRequest) {
         product_id,
         platform,
         account_number,
-        broker,
-        server,
         status,
         expires_at,
         license_kind,
@@ -147,8 +145,7 @@ export async function POST(request: NextRequest) {
 const updateData: Record<string, string | null> = {
   account_verified_at: now.toISOString(),
   last_verified_at: now.toISOString(),
-  broker: broker || null,
-  server: server || null,
+
 };
 
 // If this is a trial and it has never been activated,
@@ -204,14 +201,17 @@ const { error: updateError } = await supabaseAdmin
       },
     });
   } catch (error) {
-    console.error("License API error:", error);
+  console.error("License API error:", error);
 
-    return NextResponse.json(
-      {
-        valid: false,
-        message: "Internal server error",
-      },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(
+    {
+      valid: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Internal server error",
+    },
+    { status: 500 }
+  );
+}
 }
