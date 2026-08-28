@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import type { Purchase } from "@/types/Purchase";
 import { License } from "@/types/License";
 import { Console } from "console";
-
+import Navbar from "@/components/layout/Navbar";
 import LicenseCard from "@/components/LicenseCard";
 
 
@@ -157,8 +157,10 @@ export default function DashboardPage() {
   
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-12 text-slate-900">
 
+    
+    <main className="min-h-screen bg-slate-50  text-slate-900">
+     <Navbar /> 
       <div className="mx-auto max-w-6xl">
 
         <div className="mb-10">
@@ -239,7 +241,7 @@ export default function DashboardPage() {
                 <img
                   src={product.image}
                   alt={product.title}
-                  className="h-48 w-full object-cover"
+                  className="h-60 w-full object-cover"
                 />
 
                 <div className="p-5">

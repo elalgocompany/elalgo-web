@@ -75,7 +75,7 @@ export default function FreeProductDownloads({
       setDownloadingPlatform(null);
     }
   }
-  console.log("FREE PRODUCT FILES:", files);
+
   return (
     <div className="mt-8">
 

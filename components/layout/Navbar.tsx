@@ -1,12 +1,53 @@
+"use client";
 
-import Link from "next/link";
-import {Search , ShoppingCart} from "lucide-react" ; 
+
 import {navigation} from "@/data/navigation" ; 
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import Image from "next/image";
-
+import { Search, ShoppingCart } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function Navbar(){
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+    useEffect(() => {
+      async function checkUser() {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        setIsLoggedIn(!!user);
+      }
+
+      checkUser();
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          setIsLoggedIn(!!session?.user);
+        }
+      );
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }, []);
+
+
+    async function handleLogout() {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error("Logout error:", error);
+        return;
+      }
+
+      setIsLoggedIn(false);
+
+      window.location.href = "/";
+    }
     return(
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#050816]/80 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
@@ -50,12 +91,31 @@ export default function Navbar(){
             className="cursor-pointer text-gray-300 hover:text-white"
           />
 
-          <Link
-            href="/auth/login"
-            className="rounded-xl border border-blue-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
-          >
-            Log in
-          </Link>
+          {isLoggedIn ? (
+  <>
+    <Link
+      href="/dashboard"
+      className="rounded-xl border border-blue-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+    >
+      Dashboard
+    </Link>
+
+    <button
+      type="button"
+      onClick={handleLogout}
+      className="rounded-xl border border-white/10 px-5 py-2 text-sm font-medium text-gray-300 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
+    >
+      Log out
+    </button>
+  </>
+) : (
+  <Link
+    href="/auth/login"
+    className="rounded-xl border border-blue-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+  >
+    Log in
+  </Link>
+)}
         </div>
       </div>
     </header>
