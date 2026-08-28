@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import ProjectSubmission from "@/components/project/ProjectSubmission";
-
+import DevelopersSection from "@/components/project/DevelopersSection";
 export default function BuildProjectPage() {
   return (
 
@@ -305,7 +305,8 @@ export default function BuildProjectPage() {
 
             </div>
         </section>
-
+        
+        <DevelopersSection />
     </main>
   );
 }
