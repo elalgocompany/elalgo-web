@@ -41,6 +41,8 @@ export interface Product {
   demo_available: boolean;
 
   youtube_url: string | null;
+
+  top_notch: boolean;
 }
 
 

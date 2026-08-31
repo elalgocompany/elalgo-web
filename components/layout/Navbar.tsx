@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
+
 import {
   Menu,
   X,
@@ -12,20 +13,28 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
-
-const navigation = [
+export const navigation = [
   {
     title: "Home",
     href: "/",
   },
+
   {
     title: "Products",
     href: "/products",
   },
+
   {
     title: "Build Your Project",
     href: "/build-project",
   },
+
+  {
+    title: "Education",
+    href: "/education",
+  },
+
+  
 ];
 
 export default function Navbar() {
@@ -251,3 +260,4 @@ export default function Navbar() {
     </header>
   );
 }
+

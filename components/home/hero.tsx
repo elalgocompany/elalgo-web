@@ -1,93 +1,213 @@
 import Image from "next/image";
+
 import Button from "../ui/Button";
-import Badge from "../ui/Badge";
 import FadeIn from "../ui/FadeIn";
-import {motion} from "framer-motion" ;
+import type {ReactNode,} from "react";
+
+type HeroPoint = {
+  text: string;
+};
 
 
-export default function Hero(){
-    return(
-    <section className="mx-auto max-w-7xl px-6 py-20">
-      <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-      <FadeIn>
-        {/* Left Side */}
-        <div>
+type HeroButton = {
+  label: string;
+  href: string;
+  variant?: "primary" | "secondary";
+};
 
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-blue-400">
-            Professional Algorithmic Trading Solutions
-          </p>
+type HeroProps = {
+  eyebrow: string;
 
-          
+  title: string;
 
-          <h1 className="text-gray-200 text-5xl font-bold leading-tight lg:text-7xl">
-            Elite Algorithms.
-            <br />
-            <span className="text-blue-500">
-              Exceptional Results.
-            </span>
-          </h1>
+  highlightedTitle: string;
 
-          <p className="mt-8 max-w-xl text-lg text-gray-400">
-            Powerful Expert Advisors, Indicators and Trading
-            Tools built to give traders a professional edge
-            in any market.
-          </p>
-            <div className="mt-10 flex flex-wrap gap-4">
+  description: string;
 
-            <Button href="/products">
+  image: string;
 
-                Explore Products
+  visual?: ReactNode;
 
-            </Button>
+  imageAlt: string;
 
-            <Button
-                variant="secondary"
-                href="/build-project"
-                >
+  accent?: "blue" | "green" | "purple" | "orange";
 
-                Build Your Project
+  buttons?: HeroButton[];
 
-            </Button>
+  points?: HeroPoint[];
 
-            </div>
-          
-            <div className="mt-10 flex  gap-8 text-sm text-gray-400">
+  imagePosition?: "left" | "right";
+};
 
-                <span>✔ Premium Quality</span>
+const accentStyles = {
+  blue: {
+    eyebrow: "text-blue-400",
+    title: "text-blue-500",
+  },
 
-                <span>✔ Secure & Reliable</span>
+  green: {
+    eyebrow: "text-emerald-400",
+    title: "text-emerald-500",
+  },
 
-                <span>✔ Lifetime Support</span>
+  purple: {
+    eyebrow: "text-purple-400",
+    title: "text-purple-500",
+  },
 
-                <span>✔ Optimized Performance</span>
+  orange: {
+    eyebrow: "text-amber-400",
+    title: "text-amber-400",
+  },
+};
 
-            </div>
-                    
-           
-        </div>
-      </FadeIn> 
-        {/* Right Side */}
+export default function Hero({
+  eyebrow,
+  title,
+  highlightedTitle,
+  description,
+  image,
+  imageAlt,
+  visual,
+  accent = "blue",
 
-        <FadeIn delay={0.3}>
-          <div className="flex justify-center">
-           
-              <Image
-                src="/images/hero-robot.png"
-                alt="AI Trading Robot"
-                width={900}
-                height={900}
-                className="w-full max-w-xl"
-              />
-           
+  buttons = [],
+
+  points = [],
+
+  imagePosition = "right",
+}: HeroProps) {
+  const colors = accentStyles[accent];
+
+  const textContent = (
+    <FadeIn>
+      <div>
+
+        {/* EYEBROW */}
+
+        <p
+          className={`mb-4 text-sm font-semibold uppercase tracking-[0.3em] ${colors.eyebrow}`}
+        >
+          {eyebrow}
+        </p>
+
+
+        {/* TITLE */}
+
+        <h1 className="text-5xl font-bold leading-tight text-gray-200 lg:text-7xl">
+
+          {title}
+
+          <br />
+
+          <span className={colors.title}>
+            {highlightedTitle}
+          </span>
+
+        </h1>
+
+
+        {/* DESCRIPTION */}
+
+        <p className="mt-8 max-w-xl text-lg leading-8 text-gray-400">
+          {description}
+        </p>
+
+
+        {/* BUTTONS */}
+
+        {buttons.length > 0 && (
+          <div className="mt-10 flex flex-wrap gap-4">
+
+            {buttons.map((button) => (
+              <Button
+                key={button.label}
+                href={button.href}
+                variant={
+                  button.variant === "secondary"
+                    ? "secondary"
+                    : undefined
+                }
+              >
+                {button.label}
+              </Button>
+            ))}
+
           </div>
-        </FadeIn>
-        
-         
+        )}
 
+
+        {/* POINTS */}
+
+        {points.length > 0 && (
+          <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4 text-sm text-gray-400">
+
+            {points.map((point) => (
+              <span key={point.text}>
+                ✔ {point.text}
+              </span>
+            ))}
+
+          </div>
+        )}
+
+      </div>
+    </FadeIn>
+  );
+
+
+  
+  const imageContent = (
+  <FadeIn delay={0.3}>
+    <div className="flex items-center justify-center">
+
+      <div className="relative w-full">
+
+        {visual ? (
+          visual
+        ) : image ? (
+          <Image
+            src={image}
+            alt={imageAlt || ""}
+            width={1536}
+            height={1024}
+            priority
+            className="
+              h-auto
+              w-full
+              object-cover
+              [mask-image:radial-gradient(ellipse_82%_82%_at_58%_50%,black_55%,transparent_100%)]
+              [-webkit-mask-image:radial-gradient(ellipse_82%_82%_at_58%_50%,black_55%,transparent_100%)]
+            "
+          />
+        ) : null}
 
       </div>
 
-      
+    </div>
+  </FadeIn>
+);
+
+
+  return (
+    <section className="mx-auto max-w-7xl px-6 py-20">
+
+      <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
+
+        {imagePosition === "left" ? (
+          <>
+            {imageContent}
+            {textContent}
+          </>
+        ) : (
+          <>
+            {textContent}
+            {imageContent}
+          </>
+        )}
+
+      </div>
+
     </section>
-    );
+  );
 }

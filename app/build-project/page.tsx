@@ -3,122 +3,52 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import ProjectSubmission from "@/components/project/ProjectSubmission";
 import DevelopersSection from "@/components/project/DevelopersSection";
+import Hero from "@/components/home/hero";
+import Footer from "@/components/layout/Footer";
 export default function BuildProjectPage() {
   return (
 
   
     <main className="min-h-screen bg-[#050816] text-white">
         <Navbar />
-      {/* HERO */}
-
-        <section className="mx-auto max-w-7xl px-6 py-20">
-
-            <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-2">
-
-            {/* LEFT SIDE */}
-
-            <div>
-
-                <p className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-amber-400">
-                    Custom Trading Development
-                </p>
-
-                <h1 className="text-5xl font-bold leading-tight text-gray-100 lg:text-7xl">
-                    Build Your
-                <br />
-
-                <span className="text-amber-400">
-                    Trading Project.
-                </span>
-                </h1>
-
-                <p className="mt-8 max-w-xl text-lg leading-8 text-gray-400">
-                    Turn your trading strategy into a professional
-                    Expert Advisor, Indicator, Trading Assistant,
-                    TradingView project, or custom MetaTrader solution
-                    built exactly around your requirements.
-                </p>
-
-                {/* CTA BUTTONS */}
-
-                <div className="mt-10 flex flex-wrap gap-4">
-
-                <Link
-                    href="#submit-project"
-                    className="rounded-xl bg-amber-500 px-7 py-4 font-semibold text-black transition hover:bg-amber-400"
-                >
-                    Submit Your Project
-                </Link>
-
-                <Link
-                    href="#developers"
-                    className="rounded-xl border border-amber-500/30 px-7 py-4 font-semibold text-gray-200 transition hover:bg-amber-500/10"
-                >
-                    Talk to a Developer
-                </Link>
-
-                </div>
-
-                {/* TRUST POINTS */}
-
-                <div className="mt-10 grid gap-6 sm:grid-cols-3">
-
-                <div>
-                    <p className="font-semibold text-white">
-                        ✓ Confidential
-                    </p>
-
-                    <p className="mt-2 text-sm text-gray-400">
-                        Your strategy stays private.
-                    </p>
-                </div>
-
-                <div>
-                    <p className="font-semibold text-white">
-                    ✓ Custom Built
-                    </p>
-
-                    <p className="mt-2 text-sm text-gray-400">
-                    Built around your exact rules.
-                    </p>
-                </div>
-
-                <div>
-                    <p className="font-semibold text-white">
-                    ✓ Tested
-                    </p>
-
-                    <p className="mt-2 text-sm text-gray-400">
-                    Tested before final delivery.
-                    </p>
-                </div>
-
-                </div>
-
-            </div>
-
-
-            {/* RIGHT SIDE */}
-            <div className="flex items-center justify-center">
-            <div className="relative w-full">
-                <Image
-                    src="/images/build-project-rocket2.png"
-                    alt="ElAlgo custom trading development"
-                    width={1536}
-                    height={1024}
-                    priority
-                    className="
-                        h-auto w-full object-cover
-                        [mask-image:radial-gradient(ellipse_82%_82%_at_58%_50%,black_55%,transparent_100%)]
-                        [-webkit-mask-image:radial-gradient(ellipse_82%_82%_at_58%_50%,black_55%,transparent_100%)]
-                    "
-                />
-            </div>
-            </div>
-
-            </div>
-
-        </section>
+        
+        <Hero
+            eyebrow="Custom Trading Development"
+            title="Build Your"
+            highlightedTitle="Trading Project."
+            description="
+                Turn your trading strategy into a professional
+                Expert Advisor, Indicator, Trading Assistant,
+                TradingView project, or custom MetaTrader solution
+                built exactly around your requirements.
+            "
+            image="/images/build-project-rocket2.png"
+            imageAlt="ElAlgo custom trading development"
+            accent="orange"
+            imagePosition="right"
+            buttons={[
+                {
+                label: "Submit Your Project",
+                href: "#submit-project",
+                },
+                {
+                label: "Talk to a Developer",
+                href: "#developers",
+                variant: "secondary",
+                },
+            ]}
+            points={[
+                {
+                text: "Confidential",
+                },
+                {
+                text: "Custom Built",
+                },
+                {
+                text: "Tested",
+                },
+            ]}
+            />
 
         <section className="border-t border-white/10">
 
@@ -206,91 +136,91 @@ export default function BuildProjectPage() {
 
         <section className="border-t border-white/10 bg-[#070b18]">
 
-    <div className="mx-auto max-w-7xl px-6 py-20">
+            <div className="mx-auto max-w-7xl px-6 py-20">
 
-        <div className="text-center">
+                <div className="text-center">
 
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-400">
-            Simple & Transparent
-        </p>
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-400">
+                    Simple & Transparent
+                </p>
 
-        <h2 className="mt-3 text-4xl font-bold text-white">
-            How The Project Works
-        </h2>
+                <h2 className="mt-3 text-4xl font-bold text-white">
+                    How The Project Works
+                </h2>
 
-        </div>
+                </div>
 
 
-        <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
 
-        {[
-            {
-            number: "01",
-            title: "Tell Us Your Strategy",
-            text:
-                "Send us your complete strategy, rules, examples and requirements.",
-            },
+                {[
+                    {
+                    number: "01",
+                    title: "Tell Us Your Strategy",
+                    text:
+                        "Send us your complete strategy, rules, examples and requirements.",
+                    },
 
-            {
-            number: "02",
-            title: "Project Review",
-            text:
-                "We review the strategy and clarify any unclear details with you.",
-            },
+                    {
+                    number: "02",
+                    title: "Project Review",
+                    text:
+                        "We review the strategy and clarify any unclear details with you.",
+                    },
 
-            {
-            number: "03",
-            title: "Proposal",
-            text:
-                "You receive the project scope, delivery time and total price.",
-            },
+                    {
+                    number: "03",
+                    title: "Proposal",
+                    text:
+                        "You receive the project scope, delivery time and total price.",
+                    },
 
-            {
-            number: "04",
-            title: "Agreement & Project Start",
-            text:
-                "Once you approve the proposal, we finalize the project agreement and begin development.",
-            },
+                    {
+                    number: "04",
+                    title: "Agreement & Project Start",
+                    text:
+                        "Once you approve the proposal, we finalize the project agreement and begin development.",
+                    },
 
-            {
-            number: "05",
-            title: "Development & Demo",
-            text:
-                "We build and test your project and show the result in Strategy Tester.",
-            },
+                    {
+                    number: "05",
+                    title: "Development & Demo",
+                    text:
+                        "We build and test your project and show the result in Strategy Tester.",
+                    },
 
-            {
-            number: "06",
-            title: "Final Delivery",
-            text:
-                "After confirmation and final payment, you receive the final files and source code.",
-            },
-        ].map((step) => (
+                    {
+                    number: "06",
+                    title: "Final Delivery",
+                    text:
+                        "After confirmation and final payment, you receive the final files and source code.",
+                    },
+                ].map((step) => (
 
-            <div
-            key={step.number}
-            className="rounded-2xl border border-white/10 bg-white/[0.03] p-7"
-            >
+                    <div
+                    key={step.number}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-7"
+                    >
 
-            <span className="text-sm font-bold text-amber-400">
-                {step.number}
-            </span>
+                    <span className="text-sm font-bold text-amber-400">
+                        {step.number}
+                    </span>
 
-            <h3 className="mt-5 text-xl font-bold text-white">
-                {step.title}
-            </h3>
+                    <h3 className="mt-5 text-xl font-bold text-white">
+                        {step.title}
+                    </h3>
 
-            <p className="mt-3 leading-7 text-gray-400">
-                {step.text}
-            </p>
+                    <p className="mt-3 leading-7 text-gray-400">
+                        {step.text}
+                    </p>
+
+                    </div>
+
+                ))}
+
+                </div>
 
             </div>
-
-        ))}
-
-        </div>
-
-    </div>
 
         </section>
 
@@ -307,6 +237,12 @@ export default function BuildProjectPage() {
         </section>
         
         <DevelopersSection />
+
+        <Footer/>
     </main>
   );
 }
+
+
+
+

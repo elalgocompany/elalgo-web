@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Purchase } from "@/types/Purchase";
 import { License } from "@/types/License";
-import { Console } from "console";
+import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import LicenseCard from "@/components/LicenseCard";
+import { CustomProject } from "@/types/Project";
 
 
 export default function DashboardPage() {
@@ -21,6 +22,8 @@ export default function DashboardPage() {
   full_name: string | null;
   avatar_url: string | null;
   } | null>(null);
+  const [projects, setProjects] =
+    useState<CustomProject[]>([]);
 
  useEffect(() => {  
   async function getUser() {
@@ -137,9 +140,48 @@ export default function DashboardPage() {
       setLicenses(licensesData ?? []);
     }
 
+
+    const {
+        data: projectsData,
+        error: projectsError,
+      } = await supabase
+        .from("project_requests")
+        .select(`
+          id,
+          project_ref,
+          title,
+          project_type,
+          platform,
+          status,
+          budget_range,
+          delivery_preference,
+          created_at
+        `)
+        .eq("user_id", user.id)
+        .order(
+          "created_at",
+          { ascending: false }
+        );
+
+      if (projectsError) {
+        console.error(
+          "Project loading error:",
+          projectsError
+        );
+      } else {
+        setProjects(
+          projectsData ?? []
+        );
+      }
+
   }
 
-  
+  // --------------------------------
+      // CUSTOM PROJECTS
+      // --------------------------------
+
+      
+
 
   getUser();
 }, [router]);
@@ -159,7 +201,7 @@ export default function DashboardPage() {
   return (
 
     
-    <main className="min-h-screen bg-slate-50  text-slate-900">
+    <main className="min-h-screen bg-slate-50 text-slate-900">
      <Navbar /> 
       <div className="mx-auto max-w-6xl">
 
@@ -267,22 +309,172 @@ export default function DashboardPage() {
       </div>
 
         <section className="mt-10">
-  <h2 className="mb-6 text-2xl font-bold">
-    My Licenses
-  </h2>
+          <h2 className="mb-6 text-2xl font-bold">
+            My Licenses
+          </h2>
 
-  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
-    {licenses.map((license) => (
-      
-      <LicenseCard
-        key={license.id}
-        license={license}
-      />
-    ))}
+            {licenses.map((license) => (
+              
+              <LicenseCard
+                key={license.id}
+                license={license}
+              />
+            ))}
 
-  </div>
+          </div>
+        </section>
+
+        <section className="mt-12">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-400">
+                Custom Development
+              </p>
+
+              <h2 className="mt-2 text-2xl font-bold text-white">
+                My Custom Projects
+              </h2>
+
+            </div>
+
+        </div>
+
+
+        {projects.length === 0 ? (
+
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+
+            <p className="text-gray-400">
+              You have not submitted any custom projects yet.
+            </p>
+            
+            <Link
+              href="/build-project"
+              className="mt-5 inline-block rounded-xl bg-amber-500 px-6 py-3 font-semibold text-black transition hover:bg-amber-400"
+            >
+              Build Your Project
+            </Link>
+
+          </div>
+
+        ) : (
+
+    <div className="mt-6 grid gap-5">
+
+      {projects.map((project) => (
+
+        <div
+          key={project.id}
+          className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+        >
+
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+
+              <p className="text-sm font-medium text-amber-400">
+                {project.project_ref}
+              </p>
+
+              <h3 className="mt-2 text-xl font-bold text-white">
+                {project.title}
+              </h3>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+
+                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-gray-300">
+                  {formatProjectType(project.project_type)}
+                </span>
+
+                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-gray-300">
+                  {formatPlatform(project.platform)}
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+
+              <span className="rounded-full border border-amber-500/20 bg-amber-500/[0.06] px-4 py-2 text-sm font-medium text-amber-300">
+                {formatStatus(project.status)}
+              </span>
+
+              <p className="text-sm text-gray-500">
+                {new Date(
+                  project.created_at
+                ).toLocaleDateString()}
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div className="mt-6 grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2 lg:grid-cols-3">
+
+            <div>
+
+              <p className="text-xs uppercase tracking-wider text-gray-500">
+                Budget
+              </p>
+
+              <p className="mt-1 text-sm text-gray-300">
+                {formatBudget(
+                  project.budget_range
+                )}
+              </p>
+
+            </div>
+
+
+            <div>
+
+              <p className="text-xs uppercase tracking-wider text-gray-500">
+                Delivery
+              </p>
+
+              <p className="mt-1 text-sm text-gray-300">
+                {formatDelivery(
+                  project.delivery_preference
+                )}
+              </p>
+
+            </div>
+
+
+            <div>
+
+              <p className="text-xs uppercase tracking-wider text-gray-500">
+                Status
+              </p>
+
+              <p className="mt-1 text-sm text-gray-300">
+                {formatStatus(
+                  project.status
+                )}
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      ))}
+
+    </div>
+
+  )}
+
 </section>
+
 
     </main>
   );
@@ -292,4 +484,131 @@ export default function DashboardPage() {
 
 
 
+}
+
+
+function formatProjectType(
+  type: string
+) {
+  switch (type) {
+    case "expert-advisor":
+      return "Expert Advisor";
+
+    case "indicator":
+      return "Indicator";
+
+    case "trading-assistant":
+      return "Trading Assistant";
+
+    case "tradingview":
+      return "TradingView Project";
+
+    case "modification":
+      return "Modification / Bug Fix";
+
+    default:
+      return "Custom Project";
+  }
+}
+
+function formatPlatform(
+  platform: string
+) {
+  switch (platform) {
+    case "mt4":
+      return "MetaTrader 4";
+
+    case "mt5":
+      return "MetaTrader 5";
+
+    case "both":
+      return "MT4 & MT5";
+
+    case "tradingview":
+      return "TradingView";
+
+    default:
+      return "Other";
+  }
+}
+
+function formatStatus(
+  status: string
+) {
+  switch (status) {
+    case "submitted":
+      return "Submitted";
+
+    case "reviewing":
+      return "Reviewing";
+
+    case "awaiting_information":
+      return "Waiting for Information";
+
+    case "quoted":
+      return "Quoted";
+
+    case "accepted":
+      return "Accepted";
+
+    case "in_development":
+      return "In Development";
+
+    case "testing":
+      return "Testing";
+
+    case "completed":
+      return "Completed";
+
+    case "cancelled":
+      return "Cancelled";
+
+    default:
+      return status;
+  }
+}
+
+function formatBudget(
+  budget: string | null
+) {
+  switch (budget) {
+    case "under-100":
+      return "Under $100";
+
+    case "100-300":
+      return "$100 - $300";
+
+    case "300-700":
+      return "$300 - $700";
+
+    case "700-plus":
+      return "$700+";
+
+    case "not-sure":
+      return "Not sure";
+
+    default:
+      return "Not specified";
+  }
+}
+
+function formatDelivery(
+  delivery: string | null
+) {
+  switch (delivery) {
+    case "flexible":
+      return "Flexible";
+
+    case "1-week":
+      return "About 1 week";
+
+    case "2-weeks":
+      return "About 2 weeks";
+
+    case "1-month":
+      return "About 1 month";
+
+    default:
+      return "Not specified";
+  }
 }

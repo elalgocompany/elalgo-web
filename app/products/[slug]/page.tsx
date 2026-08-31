@@ -7,7 +7,9 @@ import ProductGallery from "@/components/product/ProductGallery";
 import StartTrialButton from "@/components/StartTrialButton";
 import { getProductFiles } from "@/lib/products";
 import FreeProductDownloads from "@/components/product/FreeProductDownloads";
-
+import { getProductTags } from "@/lib/products";
+import { getRelatedProducts } from "@/lib/products";
+import ProductCard from "@/components/product/ProductCard";
 interface ProductPageProps {
   params: Promise<{
     slug: string;
@@ -28,6 +30,11 @@ export default async function ProductPage({
   const images = await getProductImages(product.id);
   const plans = await getProductPlans(product.id);
   const productFiles =await getProductFiles(product.id);
+  const tags =
+  await getProductTags(product.id);
+
+const relatedProducts =
+  await getRelatedProducts(product.id);
 
   console.log(
   "PRODUCT PAGE FILES:",
@@ -255,6 +262,40 @@ export default async function ProductPage({
         </section>
 
       </div>
+
+            {relatedProducts.length > 0 && (
+  <section className="border-t border-white/10">
+    <div className="mx-auto max-w-7xl px-6 py-20">
+
+      <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-400">
+        You Might Also Like
+      </p>
+
+      <h2 className="mt-3 text-3xl font-bold text-white">
+        Related Products
+      </h2>
+
+      <p className="mt-4 max-w-2xl text-gray-400">
+        Explore other ElAlgo tools with similar
+        features and trading purposes.
+      </p>
+
+      <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
+        {relatedProducts.map(
+          (product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+            />
+          )
+        )}
+
+      </div>
+
+    </div>
+  </section>
+)}
 
     </main>
   );

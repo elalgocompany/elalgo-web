@@ -114,3 +114,91 @@ export async function getProductFiles(productId: string) {
 
   return data ?? [];
 }
+
+
+export async function getProductTags(
+  productId: string
+) {
+  const { data, error } = await supabase
+    .from("product_tags")
+    .select(`
+      tags (
+        id,
+        name,
+        slug
+      )
+    `)
+    .eq("product_id", productId);
+
+  if (error) {
+    console.error(
+      "Error loading product tags:",
+      error
+    );
+
+    return [];
+  }
+
+  return (
+    data
+      ?.flatMap((item) => item.tags ?? [])
+      ?? []
+  );
+}
+
+
+export async function getRelatedProducts(
+  productId: string
+) {
+  const tags = await getProductTags(
+    productId
+  );
+
+  if (tags.length === 0) {
+    return [];
+  }
+
+  const tagIds = tags.map(
+    (tag) => tag.id
+  );
+
+  const { data, error } = await supabase
+    .from("product_tags")
+    .select(`
+      product_id,
+      products (
+        *
+      )
+    `)
+    .in("tag_id", tagIds)
+    .neq("product_id", productId);
+
+  if (error) {
+    console.error(
+      "Error loading related products:",
+      error
+    );
+
+    return [];
+  }
+
+  const products =
+    data?.flatMap(
+      (item) =>
+        item.products ?? []
+    ) ?? [];
+
+  const uniqueProducts =
+    Array.from(
+      new Map(
+        products.map(
+          (product) => [
+            product.id,
+            product,
+          ]
+        )
+      ).values()
+    );
+
+  return uniqueProducts.slice(0, 3);
+}

@@ -1,103 +1,137 @@
-"use client"
+"use client";
+
 import Image from "next/image";
+import { Star } from "lucide-react";
+import { motion } from "framer-motion";
+
 import Badge from "../ui/Badge";
 import Button from "../ui/Button";
-import { Product } from "@/types/Product";
-import { Star , ArrowRight } from "lucide-react";
-import {motion } from "framer-motion"
-import Link from "next/link";
-import { image } from "framer-motion/client";
 
+import type { Product } from "@/types/Product";
 
 interface ProductCardProps {
-
   product: Product;
-  
 }
 
 export default function ProductCard({
-
-product
-
-}:ProductCardProps){
-  
-  
-  
+  product,
+}: ProductCardProps) {
   return (
-    
-    
-
     <motion.div
-    whileHover={{
-        y:-8,
-        scale:1.02
-    }}
+      whileHover={{
+        y: -8,
+        scale: 1.02,
+      }}
+      transition={{
+        duration: 0.25,
+      }}
+    >
+      <div className="group overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 transition-all duration-300 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.25)]">
 
-    transition={{
-        duration:.25
-    }}
->
-    <Link href={`/products/${product.slug}`}>
-      <div className="group overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 transition-all duration-300 hover:-translate-y-2 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.25)]">
+        {/* PRODUCT IMAGE */}
 
-        {/* Product Image */}
         <div className="mb-6 overflow-hidden rounded-2xl">
           <Image
-            src={product.image || "/images/Elalgoagent.png"}
+            src={
+              product.image ||
+              "/images/Elalgoagent.png"
+            }
             alt={product.title}
             width={500}
             height={500}
-            className="transition duration-500 group-hover:scale-110"
+            className="h-auto w-full transition duration-500 group-hover:scale-110"
           />
         </div>
 
-        {/* Title */}
-        <h3 className="text-gray-300 text-2xl font-bold">{product.title}</h3>
 
-        {/* Badges */}
-        <div className="mt-4 flex gap-2">
-          <Badge type={product.category} />
-          <Badge type={product.premium ? "premium" : "free"} />
+        {/* TITLE */}
+
+        <h3 className="text-2xl font-bold text-gray-300">
+          {product.title}
+        </h3>
+
+
+        {/* BADGES */}
+
+        <div className="mt-4 flex flex-wrap gap-2">
+
+          <Badge
+            type={product.category}
+          />
+
+          <Badge
+            type={
+              product.premium
+                ? "premium"
+                : "free"
+            }
+          />
+
         </div>
 
-        <div className="text-gray-200 mt-5 flex gap-2">
-          {product.platforms.map((platform) => (
-          <span
-            key={platform}
-            className="rounded-full bg-white/10 px-3 py-1 text-xs"
-          >
-            {platform}
-          </span>
-          ))}
-          </div>
 
-        {/* Description */}
+        {/* PLATFORMS */}
+
+        <div className="mt-5 flex flex-wrap gap-2 text-gray-200">
+
+          {product.platforms.map(
+            (platform) => (
+              <span
+                key={platform}
+                className="rounded-full bg-white/10 px-3 py-1 text-xs"
+              >
+                {platform}
+              </span>
+            )
+          )}
+
+        </div>
+
+
+        {/* DESCRIPTION */}
+
         <p className="mt-5 text-gray-400">
           {product.description}
         </p>
-        <div className="flex items-center gap-1">
-          <Star size={16} className="fill-yellow-400 text-yellow-400" />
-          <span className="text-gray-200 text-sm">{product.rating}</span>
+
+
+        {/* RATING */}
+
+        <div className="mt-4 flex items-center gap-1">
+
+          <Star
+            size={16}
+            className="fill-yellow-400 text-yellow-400"
+          />
+
+          <span className="text-sm text-gray-200">
+            {product.rating}
+          </span>
+
         </div>
 
 
-        
-        
-        {/* Footer */}
-        <div className="mt-8 flex items-center justify-between">
+        {/* FOOTER */}
+
+        <div className="mt-8 flex items-center justify-between gap-4">
 
           <span className="text-3xl font-bold text-blue-400">
-            ${product.price}
+
+            {product.access_type === "free"
+              ? "Free"
+              : `$${product.price}`}
+
           </span>
 
-            <Button href={`/products/${product.slug}`}>
-              View Details
-            </Button>
-        
+          <Button
+            href={`/products/${product.slug}`}
+          >
+            View Details
+          </Button>
+
         </div>
 
       </div>
-    </Link>
     </motion.div>
   );
 }
