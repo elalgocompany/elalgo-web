@@ -6,21 +6,23 @@ type RawDeal = {
 
   position_id: string | null;
 
-  position_by_id: string | null;
-
   symbol: string | null;
 
   deal_type: string;
 
   entry_type: string | null;
 
+  deal_reason: string | null;
+
   volume: number | string;
 
   price: number | string;
 
-  stop_loss: number | string | null;
+  stop_loss:
+    number | string | null;
 
-  take_profit: number | string | null;
+  take_profit:
+    number | string | null;
 
   profit: number | string;
 
@@ -35,8 +37,6 @@ type RawDeal = {
 
   comment: string | null;
 
-  deal_reason: string | null;
-
   deal_time: string;
 
   deal_time_msc:
@@ -45,21 +45,23 @@ type RawDeal = {
 
 
 type NormalizeResult = {
-  rawDeals: number;
+  mode:
+    | "full"
+    | "incremental";
 
-  positionsFound: number;
+  rawDealsExamined: number;
+
+  affectedPositions: number;
 
   normalizedTrades: number;
 
   openPositionsSkipped: number;
 
-  reversalPositionsSkipped: number;
-
   invalidPositionsSkipped: number;
 };
 
 
-function numberValue(
+function toNumber(
   value:
     | number
     | string
@@ -78,49 +80,47 @@ function numberValue(
 function weightedPrice(
   deals: RawDeal[]
 ) {
-  let totalVolume = 0;
-
-  let weightedTotal = 0;
+  let volumeTotal = 0;
+  let priceTotal = 0;
 
   for (const deal of deals) {
     const volume =
-      numberValue(
+      toNumber(
         deal.volume
       );
 
     const price =
-      numberValue(
+      toNumber(
         deal.price
       );
 
-    totalVolume +=
-      volume;
+    volumeTotal += volume;
 
-    weightedTotal +=
+    priceTotal +=
       volume * price;
   }
 
-  if (totalVolume <= 0) {
+  if (volumeTotal <= 0) {
     return 0;
   }
 
   return (
-    weightedTotal /
-    totalVolume
+    priceTotal /
+    volumeTotal
   );
 }
 
 
-function firstMeaningfulPrice(
+function firstNonZeroPrice(
   deals: RawDeal[],
-  field:
+  property:
     | "stop_loss"
     | "take_profit"
 ) {
   for (const deal of deals) {
     const value =
-      numberValue(
-        deal[field]
+      toNumber(
+        deal[property]
       );
 
     if (
@@ -135,16 +135,18 @@ function firstMeaningfulPrice(
 }
 
 
+// ==========================================
+// LOAD ALL RAW DEALS
+// ==========================================
+
 async function loadAllDeals(
   connectionId: string
 ) {
-  const pageSize =
-    1000;
+  const pageSize = 1000;
 
-  let offset =
-    0;
+  let offset = 0;
 
-  const allDeals:
+  const result:
     RawDeal[] = [];
 
 
@@ -160,10 +162,10 @@ async function loadAllDeals(
         .select(`
           deal_ticket,
           position_id,
-          position_by_id,
           symbol,
           deal_type,
           entry_type,
+          deal_reason,
           volume,
           price,
           stop_loss,
@@ -174,7 +176,6 @@ async function loadAllDeals(
           fee,
           magic_number,
           comment,
-          deal_reason,
           deal_time,
           deal_time_msc
         `)
@@ -207,7 +208,7 @@ async function loadAllDeals(
       (data ?? []) as RawDeal[];
 
 
-    allDeals.push(
+    result.push(
       ...page
     );
 
@@ -225,31 +226,380 @@ async function loadAllDeals(
   }
 
 
+  return result;
+}
+
+
+// ==========================================
+// FIND POSITIONS CHANGED SINCE CURSOR
+// ==========================================
+
+async function findAffectedPositions(
+  connectionId: string,
+  sinceDealTimeMsc: number
+) {
+  /*
+    Same philosophy as our EA sync.
+
+    Slight overlap protects us from
+    timestamp boundaries.
+  */
+
+  const from =
+    Math.max(
+      0,
+      sinceDealTimeMsc -
+        2000
+    );
+
+
+  const pageSize = 1000;
+
+  let offset = 0;
+
+  const positionIds =
+    new Set<string>();
+
+
+  while (true) {
+    const {
+      data,
+      error,
+    } =
+      await supabaseAdmin
+        .from(
+          "advisor_deals"
+        )
+        .select(`
+          position_id,
+          deal_type
+        `)
+        .eq(
+          "connection_id",
+          connectionId
+        )
+        .gte(
+          "deal_time_msc",
+          String(from)
+        )
+        .order(
+          "deal_time_msc",
+          {
+            ascending: true,
+          }
+        )
+        .range(
+          offset,
+          offset +
+            pageSize -
+            1
+        );
+
+
+    if (error) {
+      throw new Error(
+        `Could not find affected Advisor positions: ${error.message}`
+      );
+    }
+
+
+    const page =
+      data ?? [];
+
+
+    for (
+      const deal of page
+    ) {
+      if (
+        deal.deal_type !==
+          "buy" &&
+        deal.deal_type !==
+          "sell"
+      ) {
+        continue;
+      }
+
+
+      if (
+        deal.position_id &&
+        deal.position_id !==
+          "0"
+      ) {
+        positionIds.add(
+          deal.position_id
+        );
+      }
+    }
+
+
+    if (
+      page.length <
+      pageSize
+    ) {
+      break;
+    }
+
+
+    offset +=
+      pageSize;
+  }
+
+
+  return Array.from(
+    positionIds
+  );
+}
+
+
+// ==========================================
+// LOAD DEALS FOR SPECIFIC POSITIONS
+// ==========================================
+
+async function loadPositionDeals(
+  connectionId: string,
+  positionIds: string[]
+) {
+  const allDeals:
+    RawDeal[] = [];
+
+
+  /*
+    Avoid giant IN() queries.
+  */
+
+  const idBatchSize =
+    100;
+
+
+  for (
+    let index = 0;
+    index <
+    positionIds.length;
+    index +=
+    idBatchSize
+  ) {
+    const ids =
+      positionIds.slice(
+        index,
+        index +
+          idBatchSize
+      );
+
+
+    let offset = 0;
+
+    const pageSize =
+      1000;
+
+
+    while (true) {
+      const {
+        data,
+        error,
+      } =
+        await supabaseAdmin
+          .from(
+            "advisor_deals"
+          )
+          .select(`
+            deal_ticket,
+            position_id,
+            symbol,
+            deal_type,
+            entry_type,
+            deal_reason,
+            volume,
+            price,
+            stop_loss,
+            take_profit,
+            profit,
+            commission,
+            swap,
+            fee,
+            magic_number,
+            comment,
+            deal_time,
+            deal_time_msc
+          `)
+          .eq(
+            "connection_id",
+            connectionId
+          )
+          .in(
+            "position_id",
+            ids
+          )
+          .order(
+            "deal_time_msc",
+            {
+              ascending: true,
+            }
+          )
+          .range(
+            offset,
+            offset +
+              pageSize -
+              1
+          );
+
+
+      if (error) {
+        throw new Error(
+          `Could not load position deals: ${error.message}`
+        );
+      }
+
+
+      const page =
+        (data ?? []) as RawDeal[];
+
+
+      allDeals.push(
+        ...page
+      );
+
+
+      if (
+        page.length <
+        pageSize
+      ) {
+        break;
+      }
+
+
+      offset +=
+        pageSize;
+    }
+  }
+
+
   return allDeals;
 }
 
 
+// ==========================================
+// MAIN NORMALIZER
+// ==========================================
+
 export async function normalizeAdvisorTrades(
   connectionId: string,
   userId: string,
-  platform: "mt4" | "mt5"
+  platform:
+    | "mt4"
+    | "mt5",
+  sinceDealTimeMsc: number
 ): Promise<NormalizeResult> {
 
-  // =========================================
-  // LOAD RAW SOURCE DATA
-  // =========================================
+  // ========================================
+  // CHECK IF THIS IS OUR FIRST NORMALIZATION
+  // ========================================
 
-  const rawDeals =
-    await loadAllDeals(
-      connectionId
+  const {
+    count: existingTradeCount,
+    error: countError,
+  } =
+    await supabaseAdmin
+      .from(
+        "advisor_trades"
+      )
+      .select(
+        "id",
+        {
+          count: "exact",
+          head: true,
+        }
+      )
+      .eq(
+        "connection_id",
+        connectionId
+      );
+
+
+  if (countError) {
+    throw new Error(
+      `Could not inspect normalized trades: ${countError.message}`
     );
+  }
 
 
-  // =========================================
-  // GROUP DEALS BY POSITION
-  // =========================================
+  const fullNormalization =
+    !existingTradeCount ||
+    existingTradeCount === 0;
 
-  const positions =
+
+  let rawDeals:
+    RawDeal[];
+
+
+  let mode:
+    "full" |
+    "incremental";
+
+
+  // ========================================
+  // FIRST RUN
+  // ========================================
+
+  if (fullNormalization) {
+    mode =
+      "full";
+
+
+    rawDeals =
+      await loadAllDeals(
+        connectionId
+      );
+  }
+
+  // ========================================
+  // LATER RUNS
+  // ========================================
+
+  else {
+    mode =
+      "incremental";
+
+
+    const affectedPositionIds =
+      await findAffectedPositions(
+        connectionId,
+        sinceDealTimeMsc
+      );
+
+
+    if (
+      affectedPositionIds.length ===
+      0
+    ) {
+      return {
+        mode,
+
+        rawDealsExamined: 0,
+
+        affectedPositions: 0,
+
+        normalizedTrades: 0,
+
+        openPositionsSkipped: 0,
+
+        invalidPositionsSkipped: 0,
+      };
+    }
+
+
+    rawDeals =
+      await loadPositionDeals(
+        connectionId,
+        affectedPositionIds
+      );
+  }
+
+
+  // ========================================
+  // GROUP BY POSITION
+  // ========================================
+
+  const positionMap =
     new Map<
       string,
       RawDeal[]
@@ -260,11 +610,8 @@ export async function normalizeAdvisorTrades(
     const deal of rawDeals
   ) {
     /*
-      Ignore balance operations,
-      deposits, credits, etc.
-
-      Only BUY / SELL deals belong
-      to actual trading positions.
+      Ignore deposits, credits,
+      standalone commissions etc.
     */
 
     if (
@@ -284,7 +631,7 @@ export async function normalizeAdvisorTrades(
 
 
     const existing =
-      positions.get(
+      positionMap.get(
         deal.position_id
       );
 
@@ -294,7 +641,7 @@ export async function normalizeAdvisorTrades(
         deal
       );
     } else {
-      positions.set(
+      positionMap.set(
         deal.position_id,
         [deal]
       );
@@ -302,19 +649,12 @@ export async function normalizeAdvisorTrades(
   }
 
 
-  // =========================================
-  // NORMALIZE POSITIONS
-  // =========================================
-
   const normalizedRows:
     Record<string, unknown>[] =
       [];
 
 
   let openPositionsSkipped =
-    0;
-
-  let reversalPositionsSkipped =
     0;
 
   let invalidPositionsSkipped =
@@ -325,57 +665,56 @@ export async function normalizeAdvisorTrades(
     0.00000001;
 
 
+  // ========================================
+  // NORMALIZE EACH POSITION
+  // ========================================
+
   for (
     const [
       positionId,
       deals,
-    ] of positions
+    ] of positionMap
   ) {
-
-    // ---------------------------------------
-    // ORDER DEALS
-    // ---------------------------------------
 
     deals.sort(
       (a, b) =>
-        numberValue(
+        toNumber(
           a.deal_time_msc
         ) -
-        numberValue(
+        toNumber(
           b.deal_time_msc
         )
     );
 
 
-    // ---------------------------------------
-    // REVERSALS
-    // ---------------------------------------
+    // --------------------------------------
+    // REVERSAL PROTECTION
+    // --------------------------------------
 
-    const hasReversal =
+    if (
       deals.some(
         (deal) =>
           deal.entry_type ===
           "inout"
-      );
+      )
+    ) {
+      /*
+        We will explicitly support
+        netting reversals later.
 
+        Your current test history showed
+        no INOUT deals.
+      */
 
-    /*
-      Your current dataset has zero
-      INOUT deals.
+      invalidPositionsSkipped++;
 
-      We deliberately do not pretend
-      to support netting reversals yet.
-    */
-
-    if (hasReversal) {
-      reversalPositionsSkipped++;
       continue;
     }
 
 
-    // ---------------------------------------
-    // ENTRY / EXIT DEALS
-    // ---------------------------------------
+    // --------------------------------------
+    // ENTRY DEALS
+    // --------------------------------------
 
     const entries =
       deals.filter(
@@ -384,6 +723,10 @@ export async function normalizeAdvisorTrades(
           "in"
       );
 
+
+    // --------------------------------------
+    // EXIT DEALS
+    // --------------------------------------
 
     const exits =
       deals.filter(
@@ -396,31 +739,35 @@ export async function normalizeAdvisorTrades(
 
 
     if (
-      entries.length === 0
+      entries.length ===
+      0
     ) {
       invalidPositionsSkipped++;
+
       continue;
     }
 
+
+    /*
+      No exits means the position
+      hasn't been closed.
+    */
 
     if (
-      exits.length === 0
+      exits.length ===
+      0
     ) {
-      /*
-        Most likely a position that
-        is still open.
-      */
-
       openPositionsSkipped++;
+
       continue;
     }
 
 
-    // ---------------------------------------
-    // ENTRY DIRECTION
-    // ---------------------------------------
+    // --------------------------------------
+    // DIRECTION
+    // --------------------------------------
 
-    const entryTypes =
+    const entryDirections =
       new Set(
         entries.map(
           (deal) =>
@@ -429,16 +776,12 @@ export async function normalizeAdvisorTrades(
       );
 
 
-    /*
-      For normal hedging positions,
-      all entry deals should point in
-      the same direction.
-    */
-
     if (
-      entryTypes.size !== 1
+      entryDirections.size !==
+      1
     ) {
       invalidPositionsSkipped++;
+
       continue;
     }
 
@@ -453,19 +796,20 @@ export async function normalizeAdvisorTrades(
       direction !== "sell"
     ) {
       invalidPositionsSkipped++;
+
       continue;
     }
 
 
-    // ---------------------------------------
+    // --------------------------------------
     // VOLUME
-    // ---------------------------------------
+    // --------------------------------------
 
     const entryVolume =
       entries.reduce(
         (total, deal) =>
           total +
-          numberValue(
+          toNumber(
             deal.volume
           ),
         0
@@ -476,7 +820,7 @@ export async function normalizeAdvisorTrades(
       exits.reduce(
         (total, deal) =>
           total +
-          numberValue(
+          toNumber(
             deal.volume
           ),
         0
@@ -488,14 +832,20 @@ export async function normalizeAdvisorTrades(
       epsilon
     ) {
       invalidPositionsSkipped++;
+
       continue;
     }
 
 
     /*
-      Entry volume greater than exit
-      volume means the position is
-      still partially open.
+      Example:
+
+      entered 1.00
+      exited 0.40
+
+      Position still has 0.60 open.
+
+      Do NOT create a completed trade.
     */
 
     if (
@@ -504,13 +854,32 @@ export async function normalizeAdvisorTrades(
       entryVolume
     ) {
       openPositionsSkipped++;
+
       continue;
     }
 
 
-    // ---------------------------------------
-    // PRICES
-    // ---------------------------------------
+    /*
+      Exit volume significantly larger
+      than entry volume means something
+      unusual happened that our current
+      V1 normalizer doesn't understand.
+    */
+
+    if (
+      exitVolume >
+      entryVolume +
+        epsilon
+    ) {
+      invalidPositionsSkipped++;
+
+      continue;
+    }
+
+
+    // --------------------------------------
+    // PRICE
+    // --------------------------------------
 
     const openPrice =
       weightedPrice(
@@ -524,48 +893,66 @@ export async function normalizeAdvisorTrades(
       );
 
 
-    // ---------------------------------------
+    // --------------------------------------
     // TIMES
-    // ---------------------------------------
+    // --------------------------------------
 
     const firstEntry =
       entries[0];
 
 
-    const lastExit =
+    const finalExit =
       exits[
         exits.length - 1
       ];
 
 
-    // ---------------------------------------
+    const openTimeMs =
+      toNumber(
+        firstEntry.deal_time_msc
+      );
+
+
+    const closeTimeMs =
+      toNumber(
+        finalExit.deal_time_msc
+      );
+
+
+    const durationSeconds =
+      Math.max(
+        0,
+
+        Math.floor(
+          (
+            closeTimeMs -
+            openTimeMs
+          ) /
+          1000
+        )
+      );
+
+
+    // --------------------------------------
     // MONEY
-    // ---------------------------------------
+    // --------------------------------------
 
     const profit =
       deals.reduce(
         (total, deal) =>
           total +
-          numberValue(
+          toNumber(
             deal.profit
           ),
         0
       );
 
 
-    /*
-      Commission may be charged at
-      entry, exit, or both.
-
-      So we sum ALL deals belonging
-      to the position.
-    */
-
     const commission =
       deals.reduce(
         (total, deal) =>
           total +
-          numberValue(
+          toNumber(
             deal.commission
           ),
         0
@@ -576,7 +963,7 @@ export async function normalizeAdvisorTrades(
       deals.reduce(
         (total, deal) =>
           total +
-          numberValue(
+          toNumber(
             deal.swap
           ),
         0
@@ -587,56 +974,68 @@ export async function normalizeAdvisorTrades(
       deals.reduce(
         (total, deal) =>
           total +
-          numberValue(
+          toNumber(
             deal.fee
           ),
         0
       );
 
 
-    // ---------------------------------------
+    const netProfit =
+      profit +
+      commission +
+      swap +
+      fee;
+
+
+    // --------------------------------------
     // SL / TP
-    // ---------------------------------------
+    // --------------------------------------
 
     const stopLoss =
-      firstMeaningfulPrice(
+      firstNonZeroPrice(
         entries,
         "stop_loss"
       );
 
 
     const takeProfit =
-      firstMeaningfulPrice(
+      firstNonZeroPrice(
         entries,
         "take_profit"
       );
 
 
-    // ---------------------------------------
-    // MAGIC / COMMENT
-    // ---------------------------------------
+    // --------------------------------------
+    // MAGIC
+    // --------------------------------------
 
-    const firstEntryWithComment =
+    const magicDeal =
       entries.find(
         (deal) =>
-          Boolean(
-            deal.comment?.trim()
-          )
-      );
-
-
-    const firstEntryWithMagic =
-      entries.find(
-        (deal) =>
-          numberValue(
+          toNumber(
             deal.magic_number
           ) !== 0
       );
 
 
-    // ---------------------------------------
-    // NORMALIZED TRADE
-    // ---------------------------------------
+    // --------------------------------------
+    // COMMENT
+    // --------------------------------------
+
+    const commentDeal =
+      entries.find(
+        (deal) =>
+          Boolean(
+            deal.comment
+              ?.trim()
+          )
+      );
+
+
+    // --------------------------------------
+    // CREATE NORMALIZED TRADE
+    // --------------------------------------
 
     normalizedRows.push({
       connection_id:
@@ -663,7 +1062,7 @@ export async function normalizeAdvisorTrades(
         firstEntry.deal_time,
 
       close_time:
-        lastExit.deal_time,
+        finalExit.deal_time,
 
       open_price:
         openPrice,
@@ -685,15 +1084,34 @@ export async function normalizeAdvisorTrades(
 
       fee,
 
+      net_profit:
+        netProfit,
+
+      duration_seconds:
+        durationSeconds,
+
+      entry_deals_count:
+        entries.length,
+
+      exit_deals_count:
+        exits.length,
+
+      partial_close:
+        exits.length > 1,
+
+      close_reason:
+        finalExit.deal_reason ??
+        null,
+
       magic_number:
-        firstEntryWithMagic
+        magicDeal
           ?.magic_number ??
         firstEntry
           .magic_number ??
         null,
 
       comment:
-        firstEntryWithComment
+        commentDeal
           ?.comment ??
         firstEntry
           .comment ??
@@ -706,45 +1124,38 @@ export async function normalizeAdvisorTrades(
   }
 
 
-  // =========================================
-  // REBUILD DERIVED TABLE
-  // =========================================
+  // ========================================
+  // FIRST RUN: CLEAN DERIVED TABLE
+  // ========================================
 
-  /*
-    advisor_deals = raw truth
+  if (fullNormalization) {
+    const {
+      error,
+    } =
+      await supabaseAdmin
+        .from(
+          "advisor_trades"
+        )
+        .delete()
+        .eq(
+          "connection_id",
+          connectionId
+        );
 
-    advisor_trades = derived dataset
 
-    So it is safe to completely rebuild
-    normalized trades for this connection.
-  */
-
-  const {
-    error: deleteError,
-  } =
-    await supabaseAdmin
-      .from(
-        "advisor_trades"
-      )
-      .delete()
-      .eq(
-        "connection_id",
-        connectionId
+    if (error) {
+      throw new Error(
+        `Could not reset normalized trades: ${error.message}`
       );
-
-
-  if (deleteError) {
-    throw new Error(
-      `Could not clear normalized trades: ${deleteError.message}`
-    );
+    }
   }
 
 
-  // =========================================
-  // INSERT IN BATCHES
-  // =========================================
+  // ========================================
+  // UPSERT NORMALIZED TRADES
+  // ========================================
 
-  const insertBatchSize =
+  const batchSize =
     200;
 
 
@@ -753,13 +1164,13 @@ export async function normalizeAdvisorTrades(
     index <
     normalizedRows.length;
     index +=
-    insertBatchSize
+    batchSize
   ) {
     const batch =
       normalizedRows.slice(
         index,
         index +
-          insertBatchSize
+          batchSize
       );
 
 
@@ -770,32 +1181,36 @@ export async function normalizeAdvisorTrades(
         .from(
           "advisor_trades"
         )
-        .insert(
-          batch
+        .upsert(
+          batch,
+          {
+            onConflict:
+              "connection_id,external_trade_id",
+          }
         );
 
 
     if (error) {
       throw new Error(
-        `Could not create normalized trades: ${error.message}`
+        `Could not save normalized Advisor trades: ${error.message}`
       );
     }
   }
 
 
   return {
-    rawDeals:
+    mode,
+
+    rawDealsExamined:
       rawDeals.length,
 
-    positionsFound:
-      positions.size,
+    affectedPositions:
+      positionMap.size,
 
     normalizedTrades:
       normalizedRows.length,
 
     openPositionsSkipped,
-
-    reversalPositionsSkipped,
 
     invalidPositionsSkipped,
   };

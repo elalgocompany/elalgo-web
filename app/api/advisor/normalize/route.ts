@@ -3,18 +3,17 @@ import {
   NextResponse,
 } from "next/server";
 
-import {
-  authenticateAdvisorKey,
-} from "@/lib/advisor/auth";
+import { authenticateAdvisorKey } from "@/lib/advisor/auth";
 
-import {
-  normalizeAdvisorTrades,
-} from "@/lib/advisor/normalizeTrades";
+import { normalizeAdvisorTrades } from "@/lib/advisor/normalizeTrades";
 
 
 type NormalizeBody = {
   account_number?: string;
+
   platform?: string;
+
+  since_deal_time_msc?: string;
 };
 
 
@@ -97,7 +96,7 @@ export async function POST(
 
 
     // ========================================
-    // ACCOUNT VERIFICATION
+    // VERIFY ACCOUNT
     // ========================================
 
     if (
@@ -146,7 +145,37 @@ export async function POST(
           success: false,
 
           error:
-            "V1 normalization currently supports MT5.",
+            "Advisor V1 normalization currently supports MT5.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+
+    // ========================================
+    // PREVIOUS SYNC CURSOR
+    // ========================================
+
+    const sinceDealTimeMsc =
+      Number(
+        body.since_deal_time_msc ??
+        0
+      );
+
+
+    if (
+      !Number.isFinite(
+        sinceDealTimeMsc
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+
+          error:
+            "Invalid synchronization cursor.",
         },
         {
           status: 400,
@@ -165,7 +194,9 @@ export async function POST(
 
         connection.user_id,
 
-        "mt5"
+        "mt5",
+
+        sinceDealTimeMsc
       );
 
 
@@ -190,7 +221,7 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "Normalization failed.",
+            : "Advisor normalization failed.",
       },
       {
         status: 500,
