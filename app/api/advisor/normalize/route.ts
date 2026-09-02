@@ -6,7 +6,7 @@ import {
 import { authenticateAdvisorKey } from "@/lib/advisor/auth";
 
 import { normalizeAdvisorTrades } from "@/lib/advisor/normalizeTrades";
-
+import { calculateAdvisorMetrics } from "@/lib/advisor/calculateMetrics";
 
 type NormalizeBody = {
   account_number?: string;
@@ -199,12 +199,39 @@ export async function POST(
         sinceDealTimeMsc
       );
 
+      const metrics =
+        await calculateAdvisorMetrics(
+            connection.id,
+            connection.user_id
+        );
+        
+        return NextResponse.json({
+            success: true,
 
-    return NextResponse.json({
-      success: true,
+            normalization:
+                result,
 
-      ...result,
-    });
+            metrics: {
+                total_trades:
+                metrics.total_trades,
+
+                net_profit:
+                metrics.net_profit,
+
+                win_rate:
+                metrics.win_rate,
+
+                profit_factor:
+                metrics.profit_factor,
+
+                expectancy:
+                metrics.expectancy,
+
+                max_drawdown_amount:
+                metrics.max_drawdown_amount,
+            },
+            });
+    
 
   } catch (error) {
 
