@@ -206,65 +206,6 @@ export async function POST(
     // FIND EXISTING DEALS
     // ========================================
 
-    const dealTickets =
-      deals.map(
-        (deal) =>
-          deal.deal_ticket
-      );
-
-
-    let existingTickets =
-      new Set<string>();
-
-
-    if (dealTickets.length > 0) {
-      const {
-        data: existingDeals,
-        error: existingError,
-      } =
-        await supabaseAdmin
-          .from("advisor_deals")
-          .select("deal_ticket")
-          .eq(
-            "connection_id",
-            connection.id
-          )
-          .in(
-            "deal_ticket",
-            dealTickets
-          );
-
-
-      if (existingError) {
-        console.error(
-          "Advisor existing deals lookup error:",
-          existingError
-        );
-
-        return NextResponse.json(
-          {
-            success: false,
-
-            error:
-              "Could not check existing Advisor deals.",
-          },
-          {
-            status: 500,
-          }
-        );
-      }
-
-
-      existingTickets =
-        new Set(
-          (
-            existingDeals ?? []
-          ).map(
-            (deal) =>
-              deal.deal_ticket
-          )
-        );
-    }
 
 
     // ========================================
@@ -413,20 +354,8 @@ export async function POST(
     // CALCULATE COUNTS
     // ========================================
 
-    const insertedRecords =
-      deals.filter(
-        (deal) =>
-          !existingTickets.has(
-            deal.deal_ticket
-          )
-      ).length;
-
-
-    const updatedRecords =
-      deals.length -
-      insertedRecords;
-
-
+    const processedRecords =
+        deals.length;
     // ========================================
     // LATEST DEAL CURSOR
     // ========================================
@@ -536,13 +465,13 @@ export async function POST(
             accountNumber,
 
           received_records:
-            deals.length,
+            processedRecords,
 
           inserted_records:
-            insertedRecords,
+            0,
 
           updated_records:
-            updatedRecords,
+            0,
 
           sync_status:
             "success",
@@ -568,13 +497,13 @@ export async function POST(
       success: true,
 
       received:
-        deals.length,
+        processedRecords,
 
       inserted:
-        insertedRecords,
+        0,
 
       updated:
-        updatedRecords,
+        0,
 
       latest_deal_time_msc:
         String(
