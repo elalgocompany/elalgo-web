@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-
+import AuthModal from "@/app/auth/AuthModal";
 type SubmittedProject = {
   id: string;
   project_ref: string;
@@ -16,7 +16,7 @@ export default function ProjectSubmission() {
   const [submitting, setSubmitting] = useState(false);
 
   const [message, setMessage] = useState("");
-
+  const [authOpen , setAuthOpen] = useState(false) ; 
   const [submittedProject, setSubmittedProject] =
     useState<SubmittedProject | null>(null);
 
@@ -51,18 +51,29 @@ export default function ProjectSubmission() {
   // CHECK USER
 
   useEffect(() => {
-    async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  async function loadUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-      setUserId(user?.id ?? null);
+    setUserId(user?.id ?? null);
+    setLoadingUser(false);
+  }
 
-      setLoadingUser(false);
+  loadUser();
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(
+    (_event, session) => {
+      setUserId(session?.user?.id ?? null);
     }
+  );
 
-    loadUser();
-  }, []);
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
 
   // SUBMIT PROJECT
 
@@ -247,6 +258,7 @@ export default function ProjectSubmission() {
 
   if (loadingUser) {
     return (
+      
       <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center">
 
         <p className="text-gray-400">
@@ -260,7 +272,8 @@ export default function ProjectSubmission() {
   // NOT LOGGED IN
 
   if (!userId) {
-    return (
+  return (
+    <>
       <div className="rounded-3xl border border-amber-500/20 bg-amber-500/[0.04] p-8 text-center lg:p-12">
 
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-400">
@@ -279,25 +292,34 @@ export default function ProjectSubmission() {
 
         <div className="mt-8 flex flex-wrap justify-center gap-4">
 
-          <Link
-            href="/auth/login"
+          <button
+            type="button"
+            onClick={() => setAuthOpen(true)}
             className="rounded-xl bg-amber-500 px-7 py-4 font-bold text-black transition hover:bg-amber-400"
           >
-            Log In
-          </Link>
+            Log in
+          </button>
 
-          <Link
-            href="/auth/signup"
+          <button
+            type="button"
+            onClick={() => setAuthOpen(true)}
             className="rounded-xl border border-amber-500/30 px-7 py-4 font-bold text-gray-200 transition hover:bg-amber-500/10"
           >
             Create Account
-          </Link>
+          </button>
 
         </div>
 
-      </div>
-    );
-  }
+      </div>  
+
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        redirectTo={null}
+      />
+    </>
+  );
+}
 
   // SUCCESS SCREEN
 
@@ -869,5 +891,10 @@ export default function ProjectSubmission() {
       </p>
 
     </form>
+
+    
+    
   );
+
+  
 }

@@ -177,7 +177,28 @@ const relatedProducts =
           <p className="mt-8 text-lg leading-9 text-slate-600">
             {product.long_description}
           </p>
+          {/*tags.length > 0 && (
+            <div className="mt-6">
 
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+                Tags
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+
+                {tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="rounded-full border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-1 text-xs font-medium text-emerald-300"
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+
+              </div>
+
+            </div>
+          )*/}   
         </section>
 
         {/* FEATURES */}
@@ -258,6 +279,8 @@ const relatedProducts =
             ElAlgo products are tools designed to assist with
             trading and do not guarantee profits.
           </p>
+
+          
 
         </section>
 

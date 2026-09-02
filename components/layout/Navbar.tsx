@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-
+import AuthModal from "@/app/auth/AuthModal";
 
 import {
   Menu,
@@ -34,13 +34,19 @@ export const navigation = [
     href: "/education",
   },
 
+  {
+    title: "ElAlgo Advisor",
+    href: "/advisor",
+  },
+
+
   
 ];
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
+  const [authOpen, setAuthOpen] =useState(false);
   useEffect(() => {
     async function checkUser() {
       const {
@@ -78,6 +84,8 @@ export default function Navbar() {
   }
 
   return (
+
+    <>
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#050816]/90 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6">
 
@@ -148,12 +156,15 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link
-              href="/auth/login"
+            <button
+              type="button"
+              onClick={() =>
+                setAuthOpen(true)
+              }
               className="rounded-xl border border-blue-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
             >
               Log in
-            </Link>
+            </button>
           )}
 
         </div>
@@ -241,13 +252,16 @@ export default function Navbar() {
 
                 </div>
               ) : (
-                <Link
-                  href="/auth/login"
-                  onClick={() => setMenuOpen(false)}
-                  className="block rounded-xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-500"
+                <button
+                  type="button"
+                  onClick={() =>{
+                    setMenuOpen(false);
+                    setAuthOpen(true); 
+                  }}
+                  className="rounded-xl border border-blue-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
                 >
                   Log in
-                </Link>
+                </button>
               )}
 
             </div>
@@ -257,7 +271,18 @@ export default function Navbar() {
         </div>
       )}
 
+      
+
     </header>
+    <AuthModal
+        open={authOpen}
+        onClose={() =>
+          setAuthOpen(false)
+        }
+      />
+      
+    </>    
+
   );
 }
 

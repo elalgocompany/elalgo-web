@@ -12,7 +12,6 @@ import type { Product } from "@/types/Product";
 interface ProductCardProps {
   product: Product;
 }
-
 export default function ProductCard({
   product,
 }: ProductCardProps) {
@@ -25,36 +24,57 @@ export default function ProductCard({
       transition={{
         duration: 0.25,
       }}
+      className="h-full"
     >
-      <div className="group overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 transition-all duration-300 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.25)]">
+      <div
+        className="
+          group
+          flex
+          h-full
+          flex-col
+          overflow-hidden
+          rounded-3xl
+          border
+          border-white/10
+          bg-white/5
+          p-6
+          transition-all
+          duration-300
+          hover:border-blue-500/50
+          hover:shadow-[0_0_30px_rgba(59,130,246,0.25)]
+        "
+      >
 
         {/* PRODUCT IMAGE */}
 
-        <div className="mb-6 overflow-hidden rounded-2xl">
+        <div className="relative mb-6 aspect-square w-full overflow-hidden rounded-2xl bg-[#0b1020]">
           <Image
             src={
               product.image ||
               "/images/Elalgoagent.png"
             }
             alt={product.title}
-            width={500}
-            height={500}
-            className="h-auto w-full transition duration-500 group-hover:scale-110"
+            fill
+            className="
+              object-cover
+              transition
+              duration-500
+              group-hover:scale-110
+            "
           />
         </div>
 
 
         {/* TITLE */}
 
-        <h3 className="text-2xl font-bold text-gray-300">
+        <h3 className="line-clamp-2 min-h-[64px] text-2xl font-bold text-gray-300">
           {product.title}
         </h3>
 
 
         {/* BADGES */}
 
-        <div className="mt-4 flex flex-wrap gap-2">
-
+        <div className="mt-4 flex min-h-[32px] flex-wrap gap-2">
           <Badge
             type={product.category}
           />
@@ -66,13 +86,12 @@ export default function ProductCard({
                 : "free"
             }
           />
-
         </div>
 
 
         {/* PLATFORMS */}
 
-        <div className="mt-5 flex flex-wrap gap-2 text-gray-200">
+        <div className="mt-5 flex min-h-[28px] flex-wrap gap-2 text-gray-200">
 
           {product.platforms.map(
             (platform) => (
@@ -90,7 +109,7 @@ export default function ProductCard({
 
         {/* DESCRIPTION */}
 
-        <p className="mt-5 text-gray-400">
+        <p className="mt-5 line-clamp-3 min-h-[72px] text-gray-400">
           {product.description}
         </p>
 
@@ -113,7 +132,7 @@ export default function ProductCard({
 
         {/* FOOTER */}
 
-        <div className="mt-8 flex items-center justify-between gap-4">
+        <div className="mt-auto flex items-center justify-between gap-4 pt-8">
 
           <span className="text-3xl font-bold text-blue-400">
 

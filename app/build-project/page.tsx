@@ -5,7 +5,11 @@ import ProjectSubmission from "@/components/project/ProjectSubmission";
 import DevelopersSection from "@/components/project/DevelopersSection";
 import Hero from "@/components/home/hero";
 import Footer from "@/components/layout/Footer";
+
+
+
 export default function BuildProjectPage() {
+
   return (
 
   
