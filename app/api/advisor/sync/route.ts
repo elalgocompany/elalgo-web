@@ -41,6 +41,10 @@ type AdvisorDeal = {
   comment?: string | null;
 
   deal_time_msc: string;
+
+  position_by_id?: string | null;
+
+  deal_reason?: string | null;
 };
 
 
@@ -294,6 +298,14 @@ export async function POST(
           comment:
             deal.comment ??
             null,
+
+            position_by_id:
+                deal.position_by_id ??
+                null,
+
+            deal_reason:
+                deal.deal_reason ??
+                null,
 
           deal_time:
             new Date(
