@@ -10,7 +10,7 @@ import Navbar from "@/components/layout/Navbar";
 import LicenseCard from "@/components/LicenseCard";
 import { CustomProject } from "@/types/Project";
 import AdvisorConnectionSetup from "@/components/advisor/AdvisorConnectionSetup";
-
+import AdvisorPerformanceCard from "@/components/advisor/AdvisorPerformanceCard";
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -476,6 +476,7 @@ export default function DashboardPage() {
 </section>
 
     <AdvisorConnectionSetup/>
+    <AdvisorPerformanceCard />
     </main>
   );
 
