@@ -216,7 +216,8 @@ export async function POST(
           account_currency,
           last_balance,
           last_equity,
-          last_connected_at
+          last_connected_at , 
+          last_deal_time_msc
         `)
         .single();
 
@@ -260,6 +261,10 @@ export async function POST(
       platform:
         updatedConnection.platform,
 
+    last_deal_time_msc:
+        String(
+        updatedConnection.last_deal_time_msc ?? 0
+        ),
       message:
         "ElAlgo Advisor connected successfully.",
     });
