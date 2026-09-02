@@ -7,9 +7,7 @@ export async function authenticateAdvisorKey(
 ) {
   if (
     !authorization ||
-    !authorization.startsWith(
-      "Bearer "
-    )
+    !authorization.startsWith("Bearer ")
   ) {
     return null;
   }
@@ -38,9 +36,7 @@ export async function authenticateAdvisorKey(
     error,
   } =
     await supabaseAdmin
-      .from(
-        "advisor_connections"
-      )
+      .from("advisor_connections")
       .select(`
         id,
         user_id,
@@ -48,7 +44,8 @@ export async function authenticateAdvisorKey(
         platform,
         account_number,
         broker,
-        server
+        server,
+        last_deal_time_msc
       `)
       .eq(
         "token_hash",
