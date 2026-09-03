@@ -6,6 +6,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export async function POST(
   request: NextRequest
 ) {
+
+  
   try {
     /*
       GET ELALGO LOGIN TOKEN
@@ -60,6 +62,66 @@ export async function POST(
 
     const user =
       userData.user;
+
+    /*
+      CHECK IF USER ALREADY EXIST 
+    */
+
+      const {
+      data: existingConnection,
+      error: existingError,
+    } =
+      await supabaseAdmin
+        .from(
+          "advisor_connections"
+        )
+        .select(`
+          id,
+          token_prefix,
+          platform,
+          account_number,
+          broker,
+          server,
+          last_sync_at,
+          last_deal_time_msc
+        `)
+        .eq(
+          "user_id",
+          user.id
+        )
+        .eq(
+          "status",
+          "active"
+        )
+        .limit(1)
+        .maybeSingle();
+
+
+    if (existingError) {
+      throw new Error(
+        existingError.message
+      );
+    }
+
+
+    if (existingConnection) {
+      return NextResponse.json(
+        {
+          success: false,
+
+          connection_exists: true,
+
+          connection:
+            existingConnection,
+
+          error:
+            "An active Advisor connection already exists.",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
 
 
     /*
