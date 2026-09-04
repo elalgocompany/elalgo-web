@@ -898,47 +898,28 @@ if (
             </p>
 
 
-            <h1 className="
-              mt-4
-              text-3xl
-              font-semibold
-              text-white
-            ">
-              Connect MetaTrader first
-            </h1>
-
-
-            <p className="
-              mt-4
-              max-w-xl
-              leading-7
-              text-slate-400
-            ">
-              Advisor needs a connected
-              MetaTrader account before it
-              can analyze your trading
-              history.
-            </p>
-
-
-            <Link
-              href="/dashboard"
-              className="
-                mt-7
-                inline-flex
-                rounded-xl
-                bg-cyan-400
-                px-5
-                py-3
-                text-sm
-                font-bold
-                text-[#020611]
-                transition
-                hover:bg-cyan-300
-              "
-            >
-              Return to Dashboard
-            </Link>
+             <button
+                type="button"
+                onClick={() =>
+                    setAuthOpen(
+                    true
+                    )
+                }
+                className="
+                    mt-7
+                    rounded-xl
+                    bg-cyan-400
+                    px-6
+                    py-3
+                    text-sm
+                    font-bold
+                    text-[#020611]
+                    transition
+                    hover:bg-cyan-300
+                "
+                >
+                Log In to ElAlgo Advisor
+            </button>
 
           </div>
 
