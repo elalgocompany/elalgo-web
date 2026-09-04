@@ -7,6 +7,8 @@ import {
 
 import {
   AlertTriangle,
+
+
   Check,
   Copy,
   KeyRound,
@@ -589,157 +591,140 @@ export default function AdvisorConnectionSetup() {
 
   async function switchAccount() {
 
-    if (
-      !pendingAccountNumber
-    ) {
+  if (
+    !pendingAccountNumber
+  ) {
+    return;
+  }
+
+
+  try {
+
+    setSwitching(
+      true
+    );
+
+
+    setError(
+      ""
+    );
+
+
+    const session =
+      await getSession();
+
+
+    if (!session) {
+
+      setError(
+        "Please log in first."
+      );
+
       return;
     }
 
 
+    const response =
+      await fetch(
+        "/api/advisor/connections/switch",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${session.access_token}`,
+          },
+
+          body:
+            JSON.stringify({
+              account_number:
+                pendingAccountNumber,
+
+              confirm:
+                true,
+            }),
+        }
+      );
+
+
+    // ======================================
+    // READ RAW RESPONSE FIRST
+    // ======================================
+
+    const rawResponse =
+      await response.text();
+
+
+    console.log(
+      "Switch response status:",
+      response.status
+    );
+
+
+    console.log(
+      "Switch raw response:",
+      rawResponse
+    );
+
+
+    // ======================================
+    // EMPTY RESPONSE
+    // ======================================
+
+    if (!rawResponse) {
+
+      throw new Error(
+        `Switch endpoint returned an empty response. HTTP status: ${response.status}`
+      );
+    }
+
+
+    // ======================================
+    // PARSE JSON SAFELY
+    // ======================================
+
+    let data;
+
+
     try {
 
-      setSwitching(
-        true
+      data =
+        JSON.parse(
+          rawResponse
+        );
+
+    } catch {
+
+      console.error(
+        "Non-JSON response:",
+        rawResponse
       );
 
 
-      setError(
-        ""
+      throw new Error(
+        `Switch endpoint returned an invalid response. HTTP status: ${response.status}`
       );
+    }
 
 
-      const session =
-        await getSession();
+    // ======================================
+    // SWITCH LIMIT
+    // ======================================
 
-
-      if (!session) {
-
-        setError(
-          "Please log in first."
-        );
-
-        return;
-      }
-
-
-      const response =
-        await fetch(
-          "/api/advisor/connections/switch",
-          {
-            method:
-              "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-
-              Authorization:
-                `Bearer ${session.access_token}`,
-            },
-
-            body:
-              JSON.stringify({
-                account_number:
-                  pendingAccountNumber,
-
-                confirm:
-                  true,
-              }),
-          }
-        );
-
-
-      const data =
-        await response.json();
-
-
-      // ====================================
-      // LIMIT REACHED
-      // ====================================
-
-      if (
-        response.status ===
-          403 &&
-        data.code ===
-          "SWITCH_LIMIT_REACHED"
-      ) {
-
-        setUsage(
-          data.usage ??
-          null
-        );
-
-
-        setConfirmSwitchOpen(
-          false
-        );
-
-
-        setChangingAccount(
-          false
-        );
-
-
-        setError(
-          "You have reached your MetaTrader account switch limit."
-        );
-
-
-        return;
-      }
-
-
-      if (
-        !response.ok ||
-        !data.success
-      ) {
-        throw new Error(
-          data.error ??
-          "Could not switch MetaTrader account."
-        );
-      }
-
-
-      // ====================================
-      // UPDATE UI
-      // ====================================
-
-      setConnection(
-        data.connection
-      );
-
-
-      setAdvisorKey(
-        data.advisor_key
-      );
-
+    if (
+      response.status ===
+        403 &&
+      data.code ===
+        "SWITCH_LIMIT_REACHED"
+    ) {
 
       setUsage(
         data.usage ??
         null
-      );
-
-
-      setAccountNumber(
-        String(
-          data.connection
-            .account_number
-        )
-      );
-
-
-      setNewAccountNumber(
-        ""
-      );
-
-
-      setPendingAccountNumber(
-        ""
-      );
-
-
-      setChangingAccount(
-        false
       );
 
 
@@ -748,26 +733,110 @@ export default function AdvisorConnectionSetup() {
       );
 
 
-      setCopied(
+      setChangingAccount(
         false
       );
 
-    } catch (switchError) {
 
       setError(
-        switchError
-          instanceof Error
-          ? switchError.message
-          : "Could not switch MetaTrader account."
+        "You have reached your MetaTrader account switch limit."
       );
 
-    } finally {
 
-      setSwitching(
-        false
+      return;
+    }
+
+
+    // ======================================
+    // NORMAL ERROR
+    // ======================================
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      throw new Error(
+        data.error ??
+        "Could not switch MetaTrader account."
       );
     }
+
+
+    // ======================================
+    // SUCCESS
+    // ======================================
+
+    setConnection(
+      data.connection
+    );
+
+
+    setAdvisorKey(
+      data.advisor_key
+    );
+
+
+    setUsage(
+      data.usage ??
+      null
+    );
+
+
+    setAccountNumber(
+      String(
+        data.connection
+          .account_number
+      )
+    );
+
+
+    setNewAccountNumber(
+      ""
+    );
+
+
+    setPendingAccountNumber(
+      ""
+    );
+
+
+    setChangingAccount(
+      false
+    );
+
+
+    setConfirmSwitchOpen(
+      false
+    );
+
+
+    setCopied(
+      false
+    );
+
+  } catch (switchError) {
+
+    console.error(
+      "Switch account frontend error:",
+      switchError
+    );
+
+
+    setError(
+      switchError
+        instanceof Error
+        ? switchError.message
+        : "Could not switch MetaTrader account."
+    );
+
+  } finally {
+
+    setSwitching(
+      false
+    );
   }
+}
 
 
   // ========================================
