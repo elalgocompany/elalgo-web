@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
+import { body } from "framer-motion/client";
 
 export default function AdvisorConnectionSetup() {
   const [
@@ -64,9 +65,8 @@ export default function AdvisorConnectionSetup() {
         { method: "POST", 
           headers: { "Content-Type": "application/json", 
           Authorization: `Bearer ${session.access_token}`, 
-        }, 
-        body: JSON.stringify({ account_number: "91140491", }), } );
-
+        }, body: JSON.stringify({ account_number: "91140491", }), } );
+        console.log(body) ; 
 
     const data =
       await response.json();
