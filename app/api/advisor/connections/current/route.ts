@@ -16,8 +16,9 @@ export async function GET(
   request: NextRequest
 ) {
   try {
+
     // ========================================
-    // AUTHENTICATION
+    // AUTHENTICATE USER
     // ========================================
 
     const authorization =
@@ -70,7 +71,7 @@ export async function GET(
         {
           success: false,
           error:
-            "Invalid session.",
+            "Invalid authentication session.",
         },
         {
           status: 401,
@@ -84,12 +85,115 @@ export async function GET(
 
 
     // ========================================
-    // FIND CURRENT CONNECTION
+    // ENSURE USAGE EXISTS
+    // ========================================
+
+    const {
+      error: usageInitError,
+    } =
+      await supabaseAdmin
+        .from(
+          "advisor_usage"
+        )
+        .upsert(
+          {
+            user_id:
+              user.id,
+          },
+          {
+            onConflict:
+              "user_id",
+
+            ignoreDuplicates:
+              true,
+          }
+        );
+
+
+    if (usageInitError) {
+      throw new Error(
+        `Could not initialize Advisor usage: ${usageInitError.message}`
+      );
+    }
+
+
+    // ========================================
+    // LOAD USAGE
+    // ========================================
+
+    const {
+      data: usageData,
+      error: usageError,
+    } =
+      await supabaseAdmin
+        .from(
+          "advisor_usage"
+        )
+        .select(`
+          account_switches_used,
+          account_switch_limit
+        `)
+        .eq(
+          "user_id",
+          user.id
+        )
+        .single();
+
+
+    if (usageError) {
+      throw new Error(
+        `Could not load Advisor usage: ${usageError.message}`
+      );
+    }
+
+
+    const used =
+      usageData
+        .account_switches_used ??
+      0;
+
+
+    const unlimited =
+      usageData
+        .account_switch_limit ===
+      null;
+
+
+    const limit =
+      unlimited
+        ? null
+        : (
+            usageData
+              .account_switch_limit ??
+            10
+          );
+
+
+    const remaining =
+      unlimited
+        ? null
+        : Math.max(
+            (limit ?? 0) -
+              used,
+            0
+          );
+
+
+    const usage = {
+      used,
+      limit,
+      remaining,
+      unlimited,
+    };
+
+
+    // ========================================
+    // LOAD CONNECTION
     // ========================================
 
     const {
       data: connection,
-      error,
+      error: connectionError,
     } =
       await supabaseAdmin
         .from(
@@ -128,9 +232,9 @@ export async function GET(
         .maybeSingle();
 
 
-    if (error) {
+    if (connectionError) {
       throw new Error(
-        `Could not load Advisor connection: ${error.message}`
+        `Could not load Advisor connection: ${connectionError.message}`
       );
     }
 
@@ -140,16 +244,23 @@ export async function GET(
     // ========================================
 
     if (!connection) {
+
       return NextResponse.json({
         success: true,
+
         connected: false,
+
         connection: null,
+
+        advisor_key: null,
+
+        usage,
       });
     }
 
 
     // ========================================
-    // RECREATE SAME STABLE KEY
+    // RECREATE STABLE KEY
     // ========================================
 
     const accountNumber =
@@ -174,9 +285,12 @@ export async function GET(
         advisorKey,
 
       connection,
+
+      usage,
     });
 
   } catch (error) {
+
     console.error(
       "Current Advisor connection error:",
       error

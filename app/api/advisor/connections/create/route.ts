@@ -22,8 +22,9 @@ export async function POST(
   request: NextRequest
 ) {
   try {
+
     // ========================================
-    // AUTHENTICATE WEBSITE USER
+    // AUTHENTICATE USER
     // ========================================
 
     const authorization =
@@ -90,6 +91,39 @@ export async function POST(
 
 
     // ========================================
+    // INITIALIZE ADVISOR USAGE
+    // ========================================
+
+    const {
+      error: usageInitError,
+    } =
+      await supabaseAdmin
+        .from(
+          "advisor_usage"
+        )
+        .upsert(
+          {
+            user_id:
+              user.id,
+          },
+          {
+            onConflict:
+              "user_id",
+
+            ignoreDuplicates:
+              true,
+          }
+        );
+
+
+    if (usageInitError) {
+      throw new Error(
+        `Could not initialize Advisor usage: ${usageInitError.message}`
+      );
+    }
+
+
+    // ========================================
     // READ BODY
     // ========================================
 
@@ -133,7 +167,6 @@ export async function POST(
     }
 
 
-    // Only digits.
     if (
       !/^\d+$/.test(
         accountNumber
@@ -143,7 +176,7 @@ export async function POST(
         {
           success: false,
           error:
-            "Invalid MetaTrader account number.",
+            "MetaTrader account number must contain only numbers.",
         },
         {
           status: 400,
@@ -153,14 +186,36 @@ export async function POST(
 
 
     // ========================================
-    // LOOK FOR EXISTING ACTIVE CONNECTION
+    // GENERATE STABLE KEY
+    // ========================================
+
+    const advisorKey =
+      generateStableAdvisorKey(
+        user.id,
+        accountNumber
+      );
+
+
+    const tokenHash =
+      hashAdvisorKey(
+        advisorKey
+      );
+
+
+    const tokenPrefix =
+      advisorKey.slice(
+        0,
+        18
+      );
+
+
+    // ========================================
+    // CHECK EXISTING CONNECTION
     // ========================================
 
     const {
-      data:
-        existingConnection,
-      error:
-        existingError,
+      data: existingConnection,
+      error: existingError,
     } =
       await supabaseAdmin
         .from(
@@ -175,6 +230,8 @@ export async function POST(
           broker,
           server,
           account_currency,
+          last_balance,
+          last_equity,
           last_deal_time_msc,
           last_sync_at,
           last_connected_at,
@@ -217,53 +274,10 @@ export async function POST(
       ) ===
         accountNumber
     ) {
-      /*
-        Rebuild the exact same key.
-
-        Same:
-        user_id
-        +
-        account_number
-        +
-        server secret
-
-        =
-        exact same Advisor key.
-      */
-
-      const advisorKey =
-        generateStableAdvisorKey(
-          user.id,
-          accountNumber
-        );
-
-
-      const tokenHash =
-        hashAdvisorKey(
-          advisorKey
-        );
-
-
-      /*
-        Ensure database hash matches
-        our deterministic key.
-
-        This also smoothly upgrades an
-        older random-key connection.
-      */
-
-      const tokenPrefix =
-        advisorKey.slice(
-          0,
-          18
-        );
-
 
       const {
-        data:
-          updatedConnection,
-        error:
-          updateError,
+        data: updatedConnection,
+        error: updateError,
       } =
         await supabaseAdmin
           .from(
@@ -293,6 +307,8 @@ export async function POST(
             broker,
             server,
             account_currency,
+            last_balance,
+            last_equity,
             last_deal_time_msc,
             last_sync_at,
             last_connected_at,
@@ -303,9 +319,15 @@ export async function POST(
 
       if (updateError) {
         throw new Error(
-          `Could not update Advisor key: ${updateError.message}`
+          `Could not restore Advisor connection: ${updateError.message}`
         );
       }
+
+
+      const usage =
+        await loadUsage(
+          user.id
+        );
 
 
       return NextResponse.json({
@@ -319,6 +341,8 @@ export async function POST(
         connection:
           updatedConnection,
 
+        usage,
+
         message:
           "Existing Advisor connection restored.",
       });
@@ -326,24 +350,10 @@ export async function POST(
 
 
     // ========================================
-    // DIFFERENT ACCOUNT ALREADY EXISTS
+    // DIFFERENT ACCOUNT EXISTS
     // ========================================
 
-    if (
-      existingConnection &&
-      String(
-        existingConnection
-          .account_number
-      ) !==
-        accountNumber
-    ) {
-      /*
-        DO NOT delete anything here.
-
-        Account replacement will have
-        its own explicit endpoint in
-        the next step.
-      */
+    if (existingConnection) {
 
       return NextResponse.json(
         {
@@ -370,28 +380,8 @@ export async function POST(
 
 
     // ========================================
-    // FIRST CONNECTION FOR THIS USER
+    // CREATE FIRST CONNECTION
     // ========================================
-
-    const advisorKey =
-      generateStableAdvisorKey(
-        user.id,
-        accountNumber
-      );
-
-
-    const tokenHash =
-      hashAdvisorKey(
-        advisorKey
-      );
-
-
-    const tokenPrefix =
-      advisorKey.slice(
-        0,
-        18
-      );
-
 
     const {
       data: connection,
@@ -429,6 +419,8 @@ export async function POST(
           broker,
           server,
           account_currency,
+          last_balance,
+          last_equity,
           last_deal_time_msc,
           last_sync_at,
           last_connected_at,
@@ -444,9 +436,11 @@ export async function POST(
     }
 
 
-    // ========================================
-    // RETURN FULL KEY
-    // ========================================
+    const usage =
+      await loadUsage(
+        user.id
+      );
+
 
     return NextResponse.json({
       success: true,
@@ -457,6 +451,8 @@ export async function POST(
         advisorKey,
 
       connection,
+
+      usage,
 
       message:
         "Advisor connection created successfully.",
@@ -484,4 +480,76 @@ export async function POST(
       }
     );
   }
+}
+
+
+// ==========================================
+// LOAD USAGE
+// ==========================================
+
+async function loadUsage(
+  userId: string
+) {
+
+  const {
+    data,
+    error,
+  } =
+    await supabaseAdmin
+      .from(
+        "advisor_usage"
+      )
+      .select(`
+        account_switches_used,
+        account_switch_limit
+      `)
+      .eq(
+        "user_id",
+        userId
+      )
+      .single();
+
+
+  if (error) {
+    throw new Error(
+      `Could not load Advisor usage: ${error.message}`
+    );
+  }
+
+
+  const used =
+    data.account_switches_used ??
+    0;
+
+
+  const unlimited =
+    data.account_switch_limit ===
+    null;
+
+
+  const limit =
+    unlimited
+      ? null
+      : (
+          data.account_switch_limit ??
+          10
+        );
+
+
+  const remaining =
+    unlimited
+      ? null
+      : Math.max(
+          (limit ?? 0) -
+            used,
+          0
+        );
+
+
+  return {
+    used,
+    limit,
+    remaining,
+    unlimited,
+  };
 }

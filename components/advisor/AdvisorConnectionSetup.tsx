@@ -71,7 +71,26 @@ type AdvisorConnection = {
 };
 
 
+type AdvisorUsage = {
+  used: number;
+
+  limit:
+    | number
+    | null;
+
+  remaining:
+    | number
+    | null;
+
+  unlimited: boolean;
+};
+
+
 export default function AdvisorConnectionSetup() {
+
+  // ========================================
+  // STATE
+  // ========================================
 
   const [
     accountNumber,
@@ -93,6 +112,18 @@ export default function AdvisorConnectionSetup() {
   ] =
     useState<
       AdvisorConnection |
+      null
+    >(
+      null
+    );
+
+
+  const [
+    usage,
+    setUsage,
+  ] =
+    useState<
+      AdvisorUsage |
       null
     >(
       null
@@ -175,7 +206,7 @@ export default function AdvisorConnectionSetup() {
 
 
   // ========================================
-  // LOAD CURRENT CONNECTION
+  // LOAD ON START
   // ========================================
 
   useEffect(
@@ -185,6 +216,10 @@ export default function AdvisorConnectionSetup() {
     []
   );
 
+
+  // ========================================
+  // SESSION
+  // ========================================
 
   async function getSession() {
 
@@ -201,6 +236,10 @@ export default function AdvisorConnectionSetup() {
     return session;
   }
 
+
+  // ========================================
+  // LOAD CURRENT CONNECTION
+  // ========================================
 
   async function loadCurrentConnection() {
 
@@ -250,12 +289,17 @@ export default function AdvisorConnectionSetup() {
         !response.ok ||
         !data.success
       ) {
-
         throw new Error(
           data.error ??
           "Could not load Advisor connection."
         );
       }
+
+
+      setUsage(
+        data.usage ??
+        null
+      );
 
 
       if (
@@ -281,9 +325,8 @@ export default function AdvisorConnectionSetup() {
           data.advisor_key ??
           ""
         );
-      }
 
-      else {
+      } else {
 
         setConnection(
           null
@@ -295,11 +338,7 @@ export default function AdvisorConnectionSetup() {
         );
       }
 
-    }
-
-    catch (
-      loadError
-    ) {
+    } catch (loadError) {
 
       setError(
         loadError
@@ -308,9 +347,7 @@ export default function AdvisorConnectionSetup() {
           : "Could not load Advisor connection."
       );
 
-    }
-
-    finally {
+    } finally {
 
       setLoading(
         false
@@ -320,7 +357,7 @@ export default function AdvisorConnectionSetup() {
 
 
   // ========================================
-  // CREATE FIRST CONNECTION
+  // CREATE CONNECTION
   // ========================================
 
   async function createConnection() {
@@ -425,7 +462,6 @@ export default function AdvisorConnectionSetup() {
         !response.ok ||
         !data.success
       ) {
-
         throw new Error(
           data.error ??
           "Could not create Advisor connection."
@@ -442,11 +478,13 @@ export default function AdvisorConnectionSetup() {
         data.connection
       );
 
-    }
 
-    catch (
-      createError
-    ) {
+      setUsage(
+        data.usage ??
+        null
+      );
+
+    } catch (createError) {
 
       setError(
         createError
@@ -455,9 +493,7 @@ export default function AdvisorConnectionSetup() {
           : "Could not create Advisor connection."
       );
 
-    }
-
-    finally {
+    } finally {
 
       setCreating(
         false
@@ -467,7 +503,7 @@ export default function AdvisorConnectionSetup() {
 
 
   // ========================================
-  // PREPARE ACCOUNT CHANGE
+  // PREPARE SWITCH
   // ========================================
 
   function prepareAccountSwitch() {
@@ -516,6 +552,20 @@ export default function AdvisorConnectionSetup() {
 
       setError(
         "This MetaTrader account is already connected."
+      );
+
+      return;
+    }
+
+
+    if (
+      usage &&
+      !usage.unlimited &&
+      usage.remaining === 0
+    ) {
+
+      setError(
+        "You have reached your MetaTrader account switch limit."
       );
 
       return;
@@ -603,11 +653,46 @@ export default function AdvisorConnectionSetup() {
         await response.json();
 
 
+      // ====================================
+      // LIMIT REACHED
+      // ====================================
+
+      if (
+        response.status ===
+          403 &&
+        data.code ===
+          "SWITCH_LIMIT_REACHED"
+      ) {
+
+        setUsage(
+          data.usage ??
+          null
+        );
+
+
+        setConfirmSwitchOpen(
+          false
+        );
+
+
+        setChangingAccount(
+          false
+        );
+
+
+        setError(
+          "You have reached your MetaTrader account switch limit."
+        );
+
+
+        return;
+      }
+
+
       if (
         !response.ok ||
         !data.success
       ) {
-
         throw new Error(
           data.error ??
           "Could not switch MetaTrader account."
@@ -616,7 +701,7 @@ export default function AdvisorConnectionSetup() {
 
 
       // ====================================
-      // NEW CONNECTION
+      // UPDATE UI
       // ====================================
 
       setConnection(
@@ -626,6 +711,12 @@ export default function AdvisorConnectionSetup() {
 
       setAdvisorKey(
         data.advisor_key
+      );
+
+
+      setUsage(
+        data.usage ??
+        null
       );
 
 
@@ -661,11 +752,7 @@ export default function AdvisorConnectionSetup() {
         false
       );
 
-    }
-
-    catch (
-      switchError
-    ) {
+    } catch (switchError) {
 
       setError(
         switchError
@@ -674,9 +761,7 @@ export default function AdvisorConnectionSetup() {
           : "Could not switch MetaTrader account."
       );
 
-    }
-
-    finally {
+    } finally {
 
       setSwitching(
         false
@@ -771,11 +856,9 @@ export default function AdvisorConnectionSetup() {
           bg-cyan-400/[0.08]
           text-cyan-300
         ">
-
           <KeyRound
             size={22}
           />
-
         </div>
 
 
@@ -789,9 +872,9 @@ export default function AdvisorConnectionSetup() {
         </h2>
 
 
-        {/* ====================================
+        {/* ==================================
             NO CONNECTION
-        ==================================== */}
+        ================================== */}
 
         {!connection && (
 
@@ -851,7 +934,6 @@ export default function AdvisorConnectionSetup() {
                   py-3
                   text-white
                   outline-none
-                  transition
                   placeholder:text-gray-600
                   focus:border-cyan-400/40
                 "
@@ -860,11 +942,11 @@ export default function AdvisorConnectionSetup() {
 
               <button
                 type="button"
-                onClick={
-                  createConnection
-                }
                 disabled={
                   creating
+                }
+                onClick={
+                  createConnection
                 }
                 className="
                   mt-4
@@ -880,13 +962,11 @@ export default function AdvisorConnectionSetup() {
                   disabled:opacity-50
                 "
               >
-
                 {
                   creating
                     ? "Connecting..."
                     : "Connect MetaTrader Account"
                 }
-
               </button>
 
             </div>
@@ -896,15 +976,17 @@ export default function AdvisorConnectionSetup() {
         )}
 
 
-        {/* ====================================
+        {/* ==================================
             CONNECTION EXISTS
-        ==================================== */}
+        ================================== */}
 
         {connection && (
 
           <div className="
             mt-7
           ">
+
+            {/* STATUS */}
 
             <div className="
               flex
@@ -947,12 +1029,10 @@ export default function AdvisorConnectionSetup() {
                   uppercase
                   text-gray-500
                 ">
-
                   {
                     connection
                       .platform
                   }
-
                 </span>
 
               )}
@@ -960,7 +1040,7 @@ export default function AdvisorConnectionSetup() {
             </div>
 
 
-            {/* ACCOUNT INFO */}
+            {/* ACCOUNT INFORMATION */}
 
             <div className="
               mt-6
@@ -1003,7 +1083,7 @@ export default function AdvisorConnectionSetup() {
             </div>
 
 
-            {/* KEY */}
+            {/* ADVISOR KEY */}
 
             <div className="
               mt-7
@@ -1039,11 +1119,9 @@ export default function AdvisorConnectionSetup() {
                   text-sm
                   text-gray-300
                 ">
-
                   {
                     advisorKey
                   }
-
                 </code>
 
 
@@ -1090,19 +1168,123 @@ export default function AdvisorConnectionSetup() {
 
               </div>
 
-
-              <p className="
-                mt-3
-                text-xs
-                leading-6
-                text-gray-500
-              ">
-                This key is permanently
-                associated with this ElAlgo
-                user and MetaTrader account.
-              </p>
-
             </div>
+
+
+            {/* ==================================
+                SWITCH USAGE
+            ================================== */}
+
+            {usage && (
+
+              <div className="
+                mt-8
+                rounded-2xl
+                border
+                border-white/[0.06]
+                bg-white/[0.025]
+                p-4
+              ">
+
+                <div className="
+                  flex
+                  items-center
+                  justify-between
+                  gap-4
+                ">
+
+                  <div>
+
+                    <p className="
+                      text-xs
+                      text-gray-500
+                    ">
+                      Account Switching
+                    </p>
+
+
+                    <p className="
+                      mt-1
+                      text-sm
+                      font-medium
+                      text-gray-200
+                    ">
+
+                      {
+                        usage.unlimited
+                          ? "Unlimited switches"
+                          : `${usage.remaining} switches remaining`
+                      }
+
+                    </p>
+
+                  </div>
+
+
+                  {!usage.unlimited && (
+
+                    <span className="
+                      text-xs
+                      text-gray-500
+                    ">
+                      {
+                        usage.used
+                      }
+                      {" / "}
+                      {
+                        usage.limit
+                      }
+                      {" used"}
+                    </span>
+
+                  )}
+
+                </div>
+
+
+                {!usage.unlimited &&
+                 usage.limit !== null && (
+
+                  <div className="
+                    mt-4
+                    h-1.5
+                    overflow-hidden
+                    rounded-full
+                    bg-white/[0.05]
+                  ">
+
+                    <div
+                      className="
+                        h-full
+                        rounded-full
+                        bg-cyan-400
+                        transition-all
+                      "
+                      style={{
+                        width:
+                          `${
+                            Math.min(
+                              100,
+                              (
+                                usage.used /
+                                Math.max(
+                                  usage.limit,
+                                  1
+                                )
+                              ) *
+                              100
+                            )
+                          }%`,
+                      }}
+                    />
+
+                  </div>
+
+                )}
+
+              </div>
+
+            )}
 
 
             {/* ==================================
@@ -1110,7 +1292,7 @@ export default function AdvisorConnectionSetup() {
             ================================== */}
 
             <div className="
-              mt-8
+              mt-6
               border-t
               border-white/[0.06]
               pt-6
@@ -1120,6 +1302,15 @@ export default function AdvisorConnectionSetup() {
 
                 <button
                   type="button"
+
+                  disabled={
+                    Boolean(
+                      usage &&
+                      !usage.unlimited &&
+                      usage.remaining === 0
+                    )
+                  }
+
                   onClick={() => {
 
                     setChangingAccount(
@@ -1130,6 +1321,7 @@ export default function AdvisorConnectionSetup() {
                       ""
                     );
                   }}
+
                   className="
                     inline-flex
                     items-center
@@ -1139,6 +1331,8 @@ export default function AdvisorConnectionSetup() {
                     text-gray-400
                     transition
                     hover:text-white
+                    disabled:cursor-not-allowed
+                    disabled:opacity-40
                   "
                 >
 
@@ -1146,7 +1340,16 @@ export default function AdvisorConnectionSetup() {
                     size={15}
                   />
 
-                  Change MetaTrader Account
+
+                  {
+                    usage &&
+                    !usage.unlimited &&
+                    usage.remaining === 0
+
+                      ? "Account Switch Limit Reached"
+
+                      : "Change MetaTrader Account"
+                  }
 
                 </button>
 
@@ -1174,10 +1377,9 @@ export default function AdvisorConnectionSetup() {
                     leading-6
                     text-gray-500
                   ">
-                    Enter the new account number.
-                    You will be asked to confirm
-                    before any existing data is
-                    removed.
+                    Enter the new MetaTrader account.
+                    Existing Advisor data will only be
+                    deleted after you confirm.
                   </p>
 
 
@@ -1304,7 +1506,7 @@ export default function AdvisorConnectionSetup() {
 
 
       {/* ======================================
-          CONFIRM SWITCH MODAL
+          CONFIRMATION MODAL
       ====================================== */}
 
       {confirmSwitchOpen && (
@@ -1359,11 +1561,9 @@ export default function AdvisorConnectionSetup() {
                 hover:text-white
               "
             >
-
               <X
                 size={18}
               />
-
             </button>
 
 
@@ -1377,11 +1577,9 @@ export default function AdvisorConnectionSetup() {
               bg-red-400/10
               text-red-300
             ">
-
               <AlertTriangle
                 size={23}
               />
-
             </div>
 
 
@@ -1400,8 +1598,8 @@ export default function AdvisorConnectionSetup() {
               leading-7
               text-gray-400
             ">
-              You are about to replace
-              MetaTrader account{" "}
+
+              You are replacing account{" "}
 
               <strong className="
                 text-white
@@ -1421,6 +1619,7 @@ export default function AdvisorConnectionSetup() {
                   pendingAccountNumber
                 }
               </strong>.
+
             </p>
 
 
@@ -1438,8 +1637,8 @@ export default function AdvisorConnectionSetup() {
                 font-semibold
                 text-red-300
               ">
-                Existing Advisor data
-                will be permanently removed.
+                Existing Advisor data will
+                be permanently removed.
               </p>
 
 
@@ -1450,26 +1649,47 @@ export default function AdvisorConnectionSetup() {
                 text-red-200/60
               ">
                 Raw deals, normalized trades,
-                analytics, metrics and sync
-                history belonging to the
-                previous MetaTrader account
-                will be deleted.
+                metrics and synchronization
+                history belonging to the old
+                account will be deleted.
               </p>
 
             </div>
 
 
-            <p className="
-              mt-5
-              text-sm
-              leading-6
-              text-gray-500
-            ">
-              The new account will receive
-              its own stable Advisor key and
-              perform one complete historical
-              synchronization.
-            </p>
+            {usage &&
+             !usage.unlimited && (
+
+              <div className="
+                mt-4
+                rounded-2xl
+                border
+                border-amber-400/15
+                bg-amber-400/[0.05]
+                p-4
+              ">
+
+                <p className="
+                  text-sm
+                  text-amber-200
+                ">
+                  This will use 1 account switch.
+                </p>
+
+
+                <p className="
+                  mt-1
+                  text-xs
+                  text-amber-200/60
+                ">
+                  {
+                    usage.remaining
+                  } currently remaining.
+                </p>
+
+              </div>
+
+            )}
 
 
             <div className="
@@ -1562,6 +1782,7 @@ function InfoItem({
   value,
 }: {
   label: string;
+
   value: string;
 }) {
 
