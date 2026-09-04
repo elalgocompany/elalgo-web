@@ -26,6 +26,7 @@ import {
   supabase,
 } from "@/lib/supabase";
 
+import AuthModal from "@/app/auth/AuthModal";
 
 // ==========================================
 // TYPES
@@ -446,6 +447,12 @@ function formatHour(
 
 export default function AdvisorFullAnalysisPage() {
 
+
+    const [
+        authOpen,
+        setAuthOpen,
+    ] =
+  useState(false);
   const [
     range,
     setRange,
@@ -523,12 +530,16 @@ export default function AdvisorFullAnalysisPage() {
 
           if (!session) {
 
-            setError(
-              "You need to log in to view Advisor analysis."
+            setAuthOpen(
+                true
+            );
+
+            setData(
+                null
             );
 
             return;
-          }
+            }
 
 
           const response =
@@ -679,7 +690,86 @@ export default function AdvisorFullAnalysisPage() {
     );
   }
 
+if (
+  authOpen
+) {
+  return (
+    <main className="
+      min-h-screen
+      bg-[#030712]
+      px-4
+      py-8
+      text-white
+      sm:px-6
+    ">
 
+      <div className="
+        mx-auto
+        flex
+        min-h-[70vh]
+        max-w-7xl
+        items-center
+        justify-center
+      ">
+
+        <div className="
+          max-w-xl
+          text-center
+        ">
+
+          <p className="
+            text-xs
+            font-bold
+            uppercase
+            tracking-[0.3em]
+            text-cyan-300
+          ">
+            ElAlgo Advisor
+          </p>
+
+
+          <h1 className="
+            mt-4
+            text-3xl
+            font-semibold
+            text-white
+            sm:text-4xl
+          ">
+            Sign in to view your trading analysis
+          </h1>
+
+
+          <p className="
+            mt-4
+            leading-7
+            text-slate-400
+          ">
+            Your Advisor Agent has synchronized
+            your MetaTrader data. Sign in to
+            access your full statistics and
+            performance analysis.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <AuthModal
+        open={
+          authOpen
+        }
+        onClose={() =>
+          setAuthOpen(
+            false
+          )
+        }
+        redirectTo="/dashboard/advisor"
+      />
+
+    </main>
+  );
+}
   // ========================================
   // ERROR
   // ========================================

@@ -210,8 +210,14 @@ export default function AuthModal({
 
     onClose();
 
-    window.location.href =
-      "/dashboard";
+    onClose();
+
+
+    if (redirectTo) {
+
+      window.location.href =
+        redirectTo;
+    }
   }
 
 
