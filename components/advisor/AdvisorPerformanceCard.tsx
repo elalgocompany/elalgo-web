@@ -611,7 +611,7 @@ export default function AdvisorPerformanceCard() {
 
           if (!session) {
             setError(
-              "You need to log in to view Advisor analytics."
+              "."
             );
 
             return;

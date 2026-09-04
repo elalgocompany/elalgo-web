@@ -2,7 +2,7 @@ import Navbar from "@/components/layout/Navbar";
 import Hero from "@/components/home/hero";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import Footer from "@/components/layout/Footer";
-
+import AdvisorPerformanceCard from "@/components/advisor/AdvisorPerformanceCard";
 export default function Home(){
   return (
     <main>
@@ -45,6 +45,7 @@ export default function Home(){
     },
   ]}
 />
+      <AdvisorPerformanceCard/> 
       <FeaturedProducts/>
 
       <Footer/> 
