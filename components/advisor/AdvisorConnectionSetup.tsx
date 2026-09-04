@@ -60,17 +60,12 @@ export default function AdvisorConnectionSetup() {
 
 
     const response =
-      await fetch(
-        "/api/advisor/connections/create",
-        {
-          method: "POST",
-
-          headers: {
-            Authorization:
-              `Bearer ${session.access_token}`,
-          },
-        }
-      );
+      await fetch( "/api/advisor/connections/create", 
+        { method: "POST", 
+          headers: { "Content-Type": "application/json", 
+          Authorization: `Bearer ${session.access_token}`, 
+        }, 
+        body: JSON.stringify({ account_number: "91140491", }), } );
 
 
     const data =
